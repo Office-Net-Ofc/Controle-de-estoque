@@ -1,1 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estoque OfficeNET</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
+  <!-- LOGIN -->
+  <section id="loginView" class="login-page">
+    <div class="login-card">
+      <div class="brand">
+        <div class="brand-mark">ON</div>
+        <div>
+          <h1>OfficeNET</h1>
+          <p>Controle de Estoque</p>
+        </div>
+      </div>
+
+      <form id="loginForm">
+        <label for="loginUsuario">Usuário</label>
+        <input id="loginUsuario" type="text" autocomplete="username" required>
+
+        <label for="loginSenha">Senha</label>
+        <input id="loginSenha" type="password" autocomplete="current-password" required>
+
+        <button class="primary-btn" type="submit">Entrar</button>
+        <p id="loginMensagem" class="form-message"></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- SISTEMA -->
+  <section id="appView" class="app hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark">ON</div>
+        <div>
+          <strong>OfficeNET</strong>
+          <small>Estoque</small>
+        </div>
+      </div>
+
+      <nav>
+        <button class="nav-btn active" data-view="dashboard">📊 Dashboard</button>
+        <button class="nav-btn" data-view="estoque">📦 Estoque</button>
+        <button class="nav-btn" data-view="entrada">➕ Entrada</button>
+        <button class="nav-btn" data-view="saida">➖ Saída</button>
+        <button class="nav-btn" data-view="movimentacoes">📋 Histórico</button>
+        <button id="menuUsuarios" class="nav-btn admin-only" data-view="usuarios">👥 Usuários</button>
+      </nav>
+
+      <button id="logoutBtn" class="logout-btn">🚪 Sair</button>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2 id="pageTitle">Dashboard</h2>
+          <p id="pageSubtitle">Visão geral do estoque</p>
+        </div>
+        <div class="user-box">
+          <span id="userName">Usuário</span>
+          <small id="userProfile">PERFIL</small>
+        </div>
+      </header>
+
+      <div id="globalMessage" class="global-message"></div>
+
+      <!-- DASHBOARD -->
+      <section id="view-dashboard" class="page-view">
+        <div class="welcome-card">
+          <div>
+            <span class="eyebrow">CONTROLE DE ESTOQUE</span>
+            <h3>Olá, <span id="welcomeName">usuário</span>! 👋</h3>
+            <p>Acompanhe os materiais e registre as movimentações da OfficeNET.</p>
+          </div>
+          <button class="primary-btn" data-view="estoque">Ver estoque</button>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card">
+            <span>Materiais</span>
+            <strong id="statMateriais">0</strong>
+          </article>
+          <article class="stat-card">
+            <span>Estoque baixo</span>
+            <strong id="statBaixo">0</strong>
+          </article>
+          <article class="stat-card">
+            <span>Movimentações</span>
+            <strong id="statMovimentacoes">0</strong>
+          </article>
+        </div>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Últimas movimentações</h3>
+              <p>Registros mais recentes do estoque</p>
+            </div>
+            <button class="secondary-btn" data-view="movimentacoes">Ver todas</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Tipo</th>
+                  <th>Material</th>
+                  <th>Qtd.</th>
+                  <th>Responsável</th>
+                </tr>
+              </thead>
+              <tbody id="dashboardMovimentacoes"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- ESTOQUE -->
+      <section id="view-estoque" class="page-view hidden">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Estoque atual</h3>
+              <p>Consulte todos os materiais cadastrados.</p>
+            </div>
+            <button class="secondary-btn" id="refreshStockBtn">Atualizar</button>
+          </div>
+
+          <div class="search-row">
+            <input id="estoqueBusca" type="search" placeholder="Pesquisar por código, material ou categoria...">
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Material</th>
+                  <th>Categoria</th>
+                  <th>Unidade</th>
+                  <th>Estoque</th>
+                  <th>Mínimo</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="materiaisTable"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- ENTRADA -->
+      <section id="view-entrada" class="page-view hidden">
+        <article class="panel form-panel">
+          <div class="panel-head">
+            <div>
+              <h3>Registrar entrada</h3>
+              <p>Adicione materiais ao estoque.</p>
+            </div>
+          </div>
+
+          <form id="entradaForm" class="form-grid">
+            <div>
+              <label for="entradaCodigo">Material</label>
+              <select id="entradaCodigo" required></select>
+            </div>
+            <div>
+              <label for="entradaQuantidade">Quantidade</label>
+              <input id="entradaQuantidade" type="number" min="0.01" step="any" required>
+            </div>
+            <div>
+              <label for="entradaSolicitante">Solicitante</label>
+              <input id="entradaSolicitante" type="text" placeholder="Ex.: Almoxarifado / fornecedor">
+            </div>
+            <div>
+              <label for="entradaMotivo">Motivo</label>
+              <input id="entradaMotivo" type="text" value="Entrada de material">
+            </div>
+            <div class="full">
+              <label for="entradaObservacao">Observação</label>
+              <textarea id="entradaObservacao" rows="3"></textarea>
+            </div>
+            <div class="full form-actions">
+              <button class="primary-btn" type="submit">Registrar entrada</button>
+            </div>
+            <p id="entradaMensagem" class="form-message full"></p>
+          </form>
+        </article>
+      </section>
+
+      <!-- SAÍDA -->
+      <section id="view-saida" class="page-view hidden">
+        <article class="panel form-panel">
+          <div class="panel-head">
+            <div>
+              <h3>Registrar saída</h3>
+              <p>Retire materiais do estoque com rastreabilidade.</p>
+            </div>
+          </div>
+
+          <form id="saidaForm" class="form-grid">
+            <div>
+              <label for="saidaCodigo">Material</label>
+              <select id="saidaCodigo" required></select>
+            </div>
+            <div>
+              <label for="saidaQuantidade">Quantidade</label>
+              <input id="saidaQuantidade" type="number" min="0.01" step="any" required>
+            </div>
+            <div>
+              <label for="saidaSolicitante">Solicitante / Técnico</label>
+              <input id="saidaSolicitante" type="text" placeholder="Quem solicitou o material">
+            </div>
+            <div>
+              <label for="saidaMotivo">Motivo</label>
+              <input id="saidaMotivo" type="text" value="Saída de material">
+            </div>
+            <div class="full">
+              <label for="saidaObservacao">Observação</label>
+              <textarea id="saidaObservacao" rows="3"></textarea>
+            </div>
+            <div class="full form-actions">
+              <button class="primary-btn danger-btn" type="submit">Registrar saída</button>
+            </div>
+            <p id="saidaMensagem" class="form-message full"></p>
+          </form>
+        </article>
+      </section>
+
+      <!-- MOVIMENTAÇÕES -->
+      <section id="view-movimentacoes" class="page-view hidden">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Histórico de movimentações</h3>
+              <p>Registro completo das entradas e saídas.</p>
+            </div>
+            <button class="secondary-btn" id="refreshMovBtn">Atualizar</button>
+          </div>
+
+          <div class="search-row">
+            <input id="movBusca" type="search" placeholder="Pesquisar material, código, responsável ou solicitante...">
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data/Hora</th>
+                  <th>Tipo</th>
+                  <th>Código</th>
+                  <th>Material</th>
+                  <th>Antes</th>
+                  <th>Qtd.</th>
+                  <th>Depois</th>
+                  <th>Responsável</th>
+                  <th>Perfil</th>
+                  <th>Solicitante</th>
+                  <th>Motivo</th>
+                </tr>
+              </thead>
+              <tbody id="movimentacoesTable"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- USUÁRIOS -->
+      <section id="view-usuarios" class="page-view hidden">
+        <article class="panel form-panel">
+          <div class="panel-head">
+            <div>
+              <h3>Cadastrar usuário</h3>
+              <p>Disponível somente para administradores.</p>
+            </div>
+          </div>
+
+          <form id="usuarioForm" class="form-grid">
+            <div>
+              <label for="usuarioNome">Nome</label>
+              <input id="usuarioNome" required>
+            </div>
+            <div>
+              <label for="usuarioLogin">Usuário</label>
+              <input id="usuarioLogin" autocomplete="off" required>
+            </div>
+            <div>
+              <label for="usuarioSenha">Senha</label>
+              <input id="usuarioSenha" type="password" autocomplete="new-password" required>
+            </div>
+            <div>
+              <label for="usuarioPerfil">Perfil</label>
+              <select id="usuarioPerfil" required>
+                <option value="PREENCHEDOR">PREENCHEDOR</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            </div>
+            <div class="full form-actions">
+              <button class="primary-btn" type="submit">Cadastrar usuário</button>
+            </div>
+            <p id="usuarioMensagem" class="form-message full"></p>
+          </form>
+        </article>
+      </section>
+    </main>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
