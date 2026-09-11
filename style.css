@@ -547,3 +547,23 @@ tbody tr:hover {
   display: block;
   margin: 0 auto 20px;
 }
+.logo-sidebar {
+    width: 42px !important;
+    height: 42px !important;
+    max-width: 42px !important;
+    max-height: 42px !important;
+    object-fit: contain !important;
+    display: block;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+}
