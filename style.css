@@ -540,3 +540,10 @@ tbody tr:hover {
     flex-direction: column;
   }
 }
+.logo-login {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 20px;
+}
