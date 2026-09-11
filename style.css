@@ -547,6 +547,17 @@ tbody tr:hover {
   display: block;
   margin: 0 auto 20px;
 }
+/* ================================
+   AJUSTE DO MENU LATERAL
+   ================================ */
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* Logo */
 .logo-sidebar {
     width: 42px !important;
     height: 42px !important;
@@ -554,16 +565,97 @@ tbody tr:hover {
     max-height: 42px !important;
     object-fit: contain !important;
     display: block;
+    flex-shrink: 0;
 }
 
 .brand {
     display: flex;
     align-items: center;
     gap: 10px;
+    padding: 4px 8px 18px;
     overflow: hidden;
 }
 
 .brand-text {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+}
+
+.brand-text strong {
+    font-size: 16px;
+    line-height: 1.2;
+}
+
+.brand-text span {
+    font-size: 12px;
+    opacity: 0.75;
+    line-height: 1.2;
+}
+
+/* Área dos botões */
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Botões do menu */
+.sidebar-nav a,
+.sidebar-nav button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+/* Efeito ao passar o mouse */
+.sidebar-nav a:hover,
+.sidebar-nav button:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(2px);
+}
+
+/* Item selecionado */
+.sidebar-nav a.active,
+.sidebar-nav button.active {
+    background: #ff9800;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
+}
+
+/* Área inferior */
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 20px;
+}
+
+/* Botão sair */
+.sidebar-footer button {
+    width: 100%;
+    min-height: 44px;
+    border: none;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.07);
+    color: #ffffff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sidebar-footer button:hover {
+    background: #ff9800;
+    transform: translateY(-1px);
 }
