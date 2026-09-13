@@ -272,23 +272,64 @@ function renderMovementTables() {
   });
 
   $("movimentacoesTable").innerHTML = filtrados.length
-    ? filtrados.map((item) => `
-        <tr>
-          <td>${formatDate(item["Data/Hora"])}</td>
-          <td class="tipo ${String(item.Tipo).toUpperCase() === "ENTRADA" ? "entrada" : "saida"}">
-            ${escapeHtml(item.Tipo)}
-          </td>
-          <td>${escapeHtml(item.Código)}</td>
-          <td>${escapeHtml(item.Material)}</td>
-          <td>${escapeHtml(item["Estoque Antes"])}</td>
-          <td>${escapeHtml(item.Quantidade)}</td>
-          <td>${escapeHtml(item["Estoque Depois"])}</td>
-          <td>${escapeHtml(item.Responsável)}</td>
-          <td>${escapeHtml(item["Perfil do Registrador"])}</td>
-          <td>${escapeHtml(item.Solicitante)}</td>
-          <td>${escapeHtml(item.Motivo)}</td>
-        </tr>
-      `).join("")
+    ? filtrados.map((item) => {
+    const tipo = String(item.Tipo || "").toUpperCase();
+
+    return `
+      <tr>
+
+        <td class="date-cell">
+          ${formatDate(item["Data/Hora"])}
+        </td>
+
+        <td>
+          <span class="movement-badge ${tipo === "ENTRADA" ? "entrada" : "saida"}">
+            <span class="movement-dot"></span>
+            ${escapeHtml(tipo)}
+          </span>
+        </td>
+
+        <td>
+          <strong>${escapeHtml(item.Código)}</strong>
+        </td>
+
+        <td class="material-cell">
+          ${escapeHtml(item.Material)}
+        </td>
+
+        <td>
+          ${escapeHtml(item["Estoque Antes"])}
+        </td>
+
+        <td class="quantity-cell">
+          ${escapeHtml(item.Quantidade)}
+        </td>
+
+        <td>
+          <strong>${escapeHtml(item["Estoque Depois"])}</strong>
+        </td>
+
+        <td class="responsible-cell">
+          ${escapeHtml(item.Responsável)}
+        </td>
+
+        <td>
+          <span class="profile-badge">
+            ${escapeHtml(item["Perfil do Registrador"])}
+          </span>
+        </td>
+
+        <td>
+          ${escapeHtml(item.Solicitante)}
+        </td>
+
+        <td>
+          ${escapeHtml(item.Motivo)}
+        </td>
+
+      </tr>
+    `;
+  }).join("")
     : `<tr><td colspan="11">Nenhuma movimentação encontrada.</td></tr>`;
 }
 
