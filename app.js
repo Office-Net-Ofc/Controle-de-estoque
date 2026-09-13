@@ -228,16 +228,31 @@ function renderMovementTables() {
         const tipo = String(item.Tipo || "").toUpperCase();
 
         return `
-          <tr>
-            <td>${formatDate(item["Data/Hora"])}</td>
-            <td class="tipo ${tipo === "ENTRADA" ? "entrada" : "saida"}">
-              ${escapeHtml(tipo)}
-            </td>
-            <td>${escapeHtml(item.Material)}</td>
-            <td>${escapeHtml(item.Quantidade)}</td>
-            <td>${escapeHtml(item.Responsável)}</td>
-          </tr>
-        `;
+  <tr>
+    <td class="date-cell">
+      ${formatDate(item["Data/Hora"])}
+    </td>
+
+    <td>
+      <span class="movement-badge ${tipo === "ENTRADA" ? "entrada" : "saida"}">
+        <span class="movement-dot"></span>
+        ${escapeHtml(tipo)}
+      </span>
+    </td>
+
+    <td class="material-cell">
+      ${escapeHtml(item.Material)}
+    </td>
+
+    <td class="quantity-cell">
+      ${escapeHtml(item.Quantidade)}
+    </td>
+
+    <td class="responsible-cell">
+      ${escapeHtml(item.Responsável)}
+    </td>
+  </tr>
+`;
       }).join("")
     : `<tr><td colspan="5">Nenhuma movimentação encontrada.</td></tr>`;
 
