@@ -4,7 +4,10 @@ const state = {
   token: localStorage.getItem("officenet_token") || "",
   usuario: null,
   materiais: [],
-  movimentacoes: []
+  estoque: [],
+  movimentacoes: [],
+  lojas: [],
+  lojaFiltro: "TODAS"
 };
 
 function getLojaLabel() {
@@ -38,10 +41,24 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-async function apiGet(acao) {
+async function apiGet(acao, params = {}) {
   const url = new URL(API_URL);
+
   url.searchParams.set("acao", acao);
-  if (state.token) url.searchParams.set("token", state.token);
+
+  if (state.token) {
+    url.searchParams.set("token", state.token);
+  }
+
+  Object.entries(params).forEach(([chave, valor]) => {
+    if (
+      valor !== undefined &&
+      valor !== null &&
+      String(valor).trim() !== ""
+    ) {
+      url.searchParams.set(chave, valor);
+    }
+  });
 
   const response = await fetch(url.toString(), {
     method: "GET"
@@ -85,13 +102,26 @@ async function apiPost(payload) {
 function saveSession(data) {
   state.token = data.token;
   state.usuario = data.usuario;
-  localStorage.setItem("officenet_token", data.token);
-  localStorage.setItem("officenet_usuario", JSON.stringify(data.usuario));
+
+  localStorage.setItem(
+    "officenet_token",
+    data.token
+  );
+
+  localStorage.setItem(
+    "officenet_usuario",
+    JSON.stringify(data.usuario)
+  );
 }
 
 function clearSession() {
   state.token = "";
   state.usuario = null;
+  state.estoque = [];
+  state.movimentacoes = [];
+  state.lojas = [];
+  state.lojaFiltro = "TODAS";
+
   localStorage.removeItem("officenet_token");
   localStorage.removeItem("officenet_usuario");
 }
@@ -108,6 +138,7 @@ function showApp() {
   $("userName").textContent = state.usuario.nome;
   $("userProfile").textContent = state.usuario.perfil;
   $("userStore").textContent = getLojaLabel();
+
   $("welcomeName").textContent = state.usuario.nome;
 
   if (state.usuario.perfil === "ADMIN") {
@@ -115,12 +146,19 @@ function showApp() {
       "Você está como administrador e possui acesso a todas as lojas da OfficeNET.";
   } else {
     $("welcomeStore").textContent =
-      "Você está vinculado à " + getLojaLabel() + " e só poderá operar nessa loja.";
+      "Você está vinculado à " +
+      getLojaLabel() +
+      " e só poderá operar nessa loja.";
   }
 
-  document.querySelectorAll(".admin-only").forEach((element) => {
-    element.classList.toggle("hidden", state.usuario.perfil !== "ADMIN");
-  });
+  document
+    .querySelectorAll(".admin-only")
+    .forEach((element) => {
+      element.classList.toggle(
+        "hidden",
+        state.usuario.perfil !== "ADMIN"
+      );
+    });
 }
 
 async function login(usuario, senha) {
@@ -131,8 +169,13 @@ async function login(usuario, senha) {
   });
 
   saveSession(data);
+
+  state.lojaFiltro = "TODAS";
+
   showApp();
+
   await loadData();
+
   openView("dashboard");
 }
 
@@ -146,7 +189,12 @@ async function validateSession() {
     });
 
     state.usuario = data.sessao;
-    localStorage.setItem("officenet_usuario", JSON.stringify(state.usuario));
+
+    localStorage.setItem(
+      "officenet_usuario",
+      JSON.stringify(state.usuario)
+    );
+
     return true;
   } catch {
     clearSession();
@@ -167,404 +215,1706 @@ async function logout() {
   }
 
   clearSession();
+
   showLogin();
+
   $("loginForm").reset();
 }
+function loadData() {
+  const tarefas = [];
 
-async function loadData() {
-  const [materiaisData, movimentacoesData] = await Promise.all([
-    apiGet("materiais"),
+  tarefas.push(
+    apiGet("materiais")
+  );
+
+  tarefas.push(
+    apiGet("estoque")
+  );
+
+  tarefas.push(
     apiGet("movimentacoes")
-  ]);
+  );
 
-  state.materiais = materiaisData.materiais || [];
-  state.movimentacoes = movimentacoesData.movimentacoes || [];
+  return Promise.all(tarefas)
+    .then(([materiaisData, estoqueData, movimentacoesData]) => {
+      state.materiais = materiaisData.materiais || [];
+      state.estoque = estoqueData.estoque || [];
+      state.movimentacoes =
+        movimentacoesData.movimentacoes || [];
 
-  renderAll();
+      renderAll();
+
+      return {
+        materiais: state.materiais,
+        estoque: state.estoque,
+        movimentacoes: state.movimentacoes
+      };
+    });
 }
 
 function renderAll() {
-  renderStats();
-  renderMaterials();
+  renderDashboard();
+  renderStockTable();
   renderMovementTables();
   populateMaterialSelects();
+  renderLojaFilter();
 }
 
-function renderStats() {
-  const materiais = state.materiais;
+function renderDashboard() {
+  const estoque = getEstoqueFiltrado();
 
-  const baixos = materiais.filter((item) => {
-    const status = String(item.Status || "").toUpperCase();
-    return status.includes("BAIXO");
-  });
+  const totalItens = estoque.length;
 
-  $("statMateriais").textContent = materiais.length;
-  $("statBaixo").textContent = baixos.length;
-  $("statMovimentacoes").textContent = state.movimentacoes.length;
+  const estoqueBaixo = estoque.filter((item) => {
+    const status = String(
+      item.status || ""
+    ).toUpperCase();
+
+    return (
+      status.includes("BAIXO") ||
+      status.includes("CRÍTICO")
+    );
+  }).length;
+
+  const estoqueZerado = estoque.filter((item) => {
+    const quantidade = Number(
+      item.quantidade ?? 0
+    );
+
+    return quantidade <= 0;
+  }).length;
+
+  const movimentacoes = getMovimentacoesFiltradas();
+
+  const elementos = {
+    totalItens: $("totalMateriais"),
+    estoqueBaixo: $("estoqueBaixo"),
+    estoqueZerado: $("estoqueZerado"),
+    totalMovimentacoes: $("totalMovimentacoes")
+  };
+
+  if (elementos.totalItens) {
+    elementos.totalItens.textContent =
+      totalItens;
+  }
+
+  if (elementos.estoqueBaixo) {
+    elementos.estoqueBaixo.textContent =
+      estoqueBaixo;
+  }
+
+  if (elementos.estoqueZerado) {
+    elementos.estoqueZerado.textContent =
+      estoqueZerado;
+  }
+
+  if (elementos.totalMovimentacoes) {
+    elementos.totalMovimentacoes.textContent =
+      movimentacoes.length;
+  }
 }
 
-function renderMaterials() {
-  const busca = ($("estoqueBusca")?.value || "").trim().toLowerCase();
+function getEstoqueFiltrado() {
+  if (state.usuario?.perfil !== "ADMIN") {
+    return state.estoque;
+  }
 
-  const filtrados = state.materiais.filter((item) => {
-    const texto = [
-      item.Código,
-      item.Material,
-      item.Categoria,
-      item.Unidade
-    ].join(" ").toLowerCase();
+  if (
+    !state.lojaFiltro ||
+    String(state.lojaFiltro)
+      .trim()
+      .toUpperCase() === "TODAS"
+  ) {
+    return state.estoque;
+  }
 
-    return texto.includes(busca);
+  const lojaId = String(
+    state.lojaFiltro
+  ).trim();
+
+  return state.estoque.filter((item) => {
+    return String(
+      item.lojaId ?? ""
+    ).trim() === lojaId;
   });
-
-  $("materiaisTable").innerHTML = filtrados.length
-    ? filtrados.map((item) => {
-        const status = String(item.Status || "");
-        const baixo = status.toUpperCase().includes("BAIXO");
-
-        return `
-          <tr>
-            <td><strong>${escapeHtml(item.Código)}</strong></td>
-            <td>${escapeHtml(item.Material)}</td>
-            <td>${escapeHtml(item.Categoria)}</td>
-            <td>${escapeHtml(item.Unidade)}</td>
-            <td><strong>${escapeHtml(item.Estoque)}</strong></td>
-            <td>${escapeHtml(item["Estoque Mínimo"])}</td>
-            <td>
-              <span class="status ${baixo ? "baixo" : "normal"}">
-                ${escapeHtml(status || "NORMAL")}
-              </span>
-            </td>
-          </tr>
-        `;
-      }).join("")
-    : `<tr><td colspan="7">Nenhum material encontrado.</td></tr>`;
 }
 
-function renderMovementTables() {
-  const movimentos = [...state.movimentacoes].reverse();
+function getMovimentacoesFiltradas() {
+  if (state.usuario?.perfil !== "ADMIN") {
+    return state.movimentacoes;
+  }
 
-  const recentes = movimentos.slice(0, 8);
+  if (
+    !state.lojaFiltro ||
+    String(state.lojaFiltro)
+      .trim()
+      .toUpperCase() === "TODAS"
+  ) {
+    return state.movimentacoes;
+  }
 
-  $("dashboardMovimentacoes").innerHTML = recentes.length
-    ? recentes.map((item) => {
-        const tipo = String(item.Tipo || "").toUpperCase();
+  const lojaId = String(
+    state.lojaFiltro
+  ).trim();
 
-        return `
-  <tr>
-    <td class="date-cell">
-      ${formatDate(item["Data/Hora"])}
-    </td>
-
-    <td>
-      <span class="movement-badge ${tipo === "ENTRADA" ? "entrada" : "saida"}">
-        <span class="movement-dot"></span>
-        ${escapeHtml(tipo)}
-      </span>
-    </td>
-
-    <td class="material-cell">
-      ${escapeHtml(item.Material)}
-    </td>
-
-    <td class="quantity-cell">
-      ${escapeHtml(item.Quantidade)}
-    </td>
-
-    <td class="responsible-cell">
-      ${escapeHtml(item.Responsável)}
-    </td>
-  </tr>
-`;
-      }).join("")
-    : `<tr><td colspan="5">Nenhuma movimentação encontrada.</td></tr>`;
-
-  const busca = ($("movBusca")?.value || "").trim().toLowerCase();
-
-  const filtrados = movimentos.filter((item) => {
-    const texto = [
-      item.Código,
-      item.Material,
-      item.Responsável,
-      item.Solicitante,
-      item.Motivo,
-      item.Tipo
-    ].join(" ").toLowerCase();
-
-    return texto.includes(busca);
+  return state.movimentacoes.filter((item) => {
+    return String(
+      item.LOJA_ID ??
+      item.lojaId ??
+      ""
+    ).trim() === lojaId;
   });
+}
 
-  $("movimentacoesTable").innerHTML = filtrados.length
-    ? filtrados.map((item) => {
-    const tipo = String(item.Tipo || "").toUpperCase();
+function getEstoqueItem(materialId, lojaId) {
+  return state.estoque.find((item) => {
+    return (
+      String(item.materialId ?? "").trim() ===
+        String(materialId ?? "").trim() &&
+      String(item.lojaId ?? "").trim() ===
+        String(lojaId ?? "").trim()
+    );
+  });
+}
+
+function formatNumber(value) {
+  const numero = Number(value);
+
+  if (!Number.isFinite(numero)) {
+    return "0";
+  }
+
+  return numero.toLocaleString("pt-BR", {
+    maximumFractionDigits: 2
+  });
+}
+
+function getStatusClass(status) {
+  const texto = String(
+    status || ""
+  ).toUpperCase();
+
+  if (
+    texto.includes("NORMAL") ||
+    texto.includes("OK")
+  ) {
+    return "status-normal";
+  }
+
+  if (
+    texto.includes("BAIXO") ||
+    texto.includes("CRÍTICO")
+  ) {
+    return "status-baixo";
+  }
+
+  if (texto.includes("ZERADO")) {
+    return "status-zerado";
+  }
+
+  return "";
+}
+
+function getMaterialField(item, ...nomes) {
+  for (const nome of nomes) {
+    if (
+      item &&
+      item[nome] !== undefined &&
+      item[nome] !== null
+    ) {
+      return item[nome];
+    }
+  }
+
+  return "";
+}
+
+function findMaterialById(id) {
+  return state.materiais.find((material) => {
+    return String(
+      material.ID ??
+      material.id ??
+      material.Id ??
+      ""
+    ).trim() === String(id).trim();
+  });
+}
+
+function getMaterialCode(material) {
+  return getMaterialField(
+    material,
+    "Código",
+    "CODIGO",
+    "Codigo",
+    "codigo",
+    "Código Material"
+  );
+}
+
+function getMaterialName(material) {
+  return getMaterialField(
+    material,
+    "Material",
+    "NOME",
+    "Nome",
+    "nome",
+    "Descrição",
+    "DESCRICAO",
+    "descricao"
+  );
+}
+
+function getMaterialCategory(material) {
+  return getMaterialField(
+    material,
+    "Categoria",
+    "CATEGORIA",
+    "categoria"
+  );
+}
+
+function getMaterialUnit(material) {
+  return getMaterialField(
+    material,
+    "Unidade",
+    "UNIDADE",
+    "unidade"
+  );
+}
+
+function renderStockTable() {
+  const tabela = $("materiaisTable");
+
+  if (!tabela) return;
+
+  const estoque = getEstoqueFiltrado();
+
+  if (!estoque.length) {
+    tabela.innerHTML = `
+      <tr>
+        <td colspan="7" class="empty-state">
+          Nenhum item de estoque encontrado.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tabela.innerHTML = estoque.map((item) => {
+    const material = findMaterialById(
+      item.materialId
+    );
+
+    const codigo =
+      item.codigo ||
+      getMaterialCode(material) ||
+      "—";
+
+    const nome =
+      item.material ||
+      item.nome ||
+      getMaterialName(material) ||
+      "Material";
+
+    const categoria =
+      item.categoria ||
+      getMaterialCategory(material) ||
+      "—";
+
+    const unidade =
+      item.unidade ||
+      getMaterialUnit(material) ||
+      "—";
+
+    const quantidade = Number(
+      item.quantidade ?? 0
+    );
+
+    const minimo = Number(
+      item.estoqueMinimo ?? 0
+    );
+
+    const status =
+      item.status ||
+      (quantidade <= 0
+        ? "ESTOQUE ZERADO"
+        : quantidade <= minimo
+          ? "ESTOQUE BAIXO"
+          : "NORMAL");
+
+    const statusClass =
+      getStatusClass(status);
 
     return `
       <tr>
-
-        <td class="date-cell">
-          ${formatDate(item["Data/Hora"])}
+        <td>
+          <strong>${escapeHtml(codigo)}</strong>
         </td>
 
         <td>
-          <span class="movement-badge ${tipo === "ENTRADA" ? "entrada" : "saida"}">
-            <span class="movement-dot"></span>
+          ${escapeHtml(nome)}
+        </td>
+
+        <td>
+          ${escapeHtml(categoria)}
+        </td>
+
+        <td>
+          ${escapeHtml(unidade)}
+        </td>
+
+        <td>
+          <strong>${formatNumber(quantidade)}</strong>
+        </td>
+
+        <td>
+          ${formatNumber(minimo)}
+        </td>
+
+        <td>
+          <span class="status-badge ${statusClass}">
+            ${escapeHtml(status)}
+          </span>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function renderLojaFilter() {
+  if (state.usuario?.perfil !== "ADMIN") {
+    return;
+  }
+
+  const filtro =
+    $("estoqueLojaFiltro");
+
+  if (!filtro) {
+    return;
+  }
+
+  const lojas = getLojasFromEstoque();
+
+  const valorAtual =
+    state.lojaFiltro || "TODAS";
+
+  filtro.innerHTML = `
+    <option value="TODAS">
+      Todas as lojas
+    </option>
+
+    ${lojas.map((loja) => `
+      <option value="${escapeHtml(loja.id)}">
+        ${escapeHtml(loja.codigo)} —
+        ${escapeHtml(loja.nome)}
+      </option>
+    `).join("")}
+  `;
+
+  filtro.value = valorAtual;
+
+  if (filtro.value !== valorAtual) {
+    filtro.value = "TODAS";
+    state.lojaFiltro = "TODAS";
+  }
+}
+
+function getLojasFromEstoque() {
+  const mapa = new Map();
+
+  state.estoque.forEach((item) => {
+    const id = String(
+      item.lojaId ?? ""
+    ).trim();
+
+    if (!id) return;
+
+    if (!mapa.has(id)) {
+      mapa.set(id, {
+        id,
+        codigo:
+          item.lojaCodigo ||
+          id,
+        nome:
+          item.lojaNome ||
+          ("Loja " + id)
+      });
+    }
+  });
+
+  return Array.from(
+    mapa.values()
+  ).sort((a, b) =>
+    String(a.codigo).localeCompare(
+      String(b.codigo),
+      "pt-BR"
+    )
+  );
+}
+
+function atualizarFiltroLoja() {
+  const filtro =
+    $("estoqueLojaFiltro");
+
+  if (!filtro) return;
+
+  state.lojaFiltro =
+    filtro.value || "TODAS";
+
+  renderDashboard();
+  renderStockTable();
+  renderMovementTables();
+}
+function renderMovementTables() {
+  const tabela = $("movimentacoesTable");
+
+  if (!tabela) return;
+
+  const movimentacoes =
+    getMovimentacoesFiltradas();
+
+  if (!movimentacoes.length) {
+    tabela.innerHTML = `
+      <tr>
+        <td colspan="10" class="empty-state">
+          Nenhuma movimentação encontrada.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const ordenadas = [...movimentacoes].reverse();
+
+  tabela.innerHTML = ordenadas.map((item) => {
+    const data =
+      item.DATA ||
+      item.data ||
+      item.Timestamp ||
+      "—";
+
+    const tipo =
+      item.TIPO ||
+      item.tipo ||
+      item.Tipo ||
+      "—";
+
+    const codigo =
+      item.CODIGO ||
+      item.codigo ||
+      item["Código"] ||
+      "—";
+
+    const material =
+      item.MATERIAL ||
+      item.material ||
+      item["Material"] ||
+      "—";
+
+    const antes =
+      item.ESTOQUE_ANTES ??
+      item["Estoque Antes"] ??
+      item.estoqueAntes ??
+      "—";
+
+    const quantidade =
+      item.QUANTIDADE ??
+      item.quantidade ??
+      "—";
+
+    const depois =
+      item.ESTOQUE_DEPOIS ??
+      item["Estoque Depois"] ??
+      item.estoqueDepois ??
+      "—";
+
+    const responsavel =
+      item.RESPONSAVEL ||
+      item.responsavel ||
+      item.USUARIO ||
+      item.usuario ||
+      "—";
+
+    const perfil =
+      item.PERFIL ||
+      item.perfil ||
+      "—";
+
+    const solicitante =
+      item.SOLICITANTE ||
+      item.solicitante ||
+      "—";
+
+    const motivo =
+      item.MOTIVO ||
+      item.motivo ||
+      item.OBSERVACAO ||
+      item.observacao ||
+      "—";
+
+    const tipoNormalizado =
+      String(tipo)
+        .trim()
+        .toUpperCase();
+
+    const classeTipo =
+      tipoNormalizado.includes("ENTR")
+        ? "entrada"
+        : tipoNormalizado.includes("SAÍ")
+          || tipoNormalizado.includes("SAI")
+          ? "saida"
+          : "";
+
+    return `
+      <tr>
+        <td>
+          ${escapeHtml(formatDateTime(data))}
+        </td>
+
+        <td>
+          <span class="movement-type ${classeTipo}">
             ${escapeHtml(tipo)}
           </span>
         </td>
 
         <td>
-          <strong>${escapeHtml(item.Código)}</strong>
-        </td>
-
-        <td class="material-cell">
-          ${escapeHtml(item.Material)}
-        </td>
-
-        <td>
-          ${escapeHtml(item["Estoque Antes"])}
-        </td>
-
-        <td class="quantity-cell">
-          ${escapeHtml(item.Quantidade)}
+          <strong>
+            ${escapeHtml(codigo)}
+          </strong>
         </td>
 
         <td>
-          <strong>${escapeHtml(item["Estoque Depois"])}</strong>
-        </td>
-
-        <td class="responsible-cell">
-          ${escapeHtml(item.Responsável)}
+          ${escapeHtml(material)}
         </td>
 
         <td>
-          <span class="profile-badge">
-            ${escapeHtml(item["Perfil do Registrador"])}
-          </span>
+          ${formatNumber(antes)}
         </td>
 
         <td>
-          ${escapeHtml(item.Solicitante)}
+          ${formatNumber(quantidade)}
         </td>
 
         <td>
-          ${escapeHtml(item.Motivo)}
+          ${formatNumber(depois)}
         </td>
 
+        <td>
+          ${escapeHtml(responsavel)}
+        </td>
+
+        <td>
+          ${escapeHtml(perfil)}
+        </td>
+
+        <td>
+          ${escapeHtml(motivo)}
+        </td>
       </tr>
     `;
-  }).join("")
-    : `<tr><td colspan="11">Nenhuma movimentação encontrada.</td></tr>`;
+  }).join("");
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return "—";
+  }
+
+  if (value instanceof Date) {
+    return value.toLocaleString("pt-BR");
+  }
+
+  const texto = String(value).trim();
+
+  if (!texto) {
+    return "—";
+  }
+
+  const data = new Date(texto);
+
+  if (!Number.isNaN(data.getTime())) {
+    return data.toLocaleString("pt-BR");
+  }
+
+  return texto;
 }
 
 function populateMaterialSelects() {
-  const selects = [$("entradaCodigo"), $("saidaCodigo")];
+  const selects = [
+    $("entradaMaterial"),
+    $("saidaMaterial")
+  ];
 
   selects.forEach((select) => {
-    const current = select.value;
+    if (!select) return;
+
+    const valorAtual =
+      select.value;
 
     select.innerHTML = `
-      <option value="">Selecione o material...</option>
-      ${state.materiais.map((item) => `
-        <option value="${escapeHtml(item.Código)}">
-          ${escapeHtml(item.Código)} — ${escapeHtml(item.Material)}
-          (estoque: ${escapeHtml(item.Estoque)})
-        </option>
-      `).join("")}
+      <option value="">
+        Selecione o material
+      </option>
     `;
 
-    if (current) select.value = current;
+    state.materiais.forEach((material) => {
+      const id =
+        material.ID ??
+        material.id ??
+        material.Id;
+
+      if (
+        id === undefined ||
+        id === null ||
+        String(id).trim() === ""
+      ) {
+        return;
+      }
+
+      const codigo =
+        getMaterialCode(material);
+
+      const nome =
+        getMaterialName(material);
+
+      const unidade =
+        getMaterialUnit(material);
+
+      const estoqueItem =
+        getEstoqueItem(
+          id,
+          getOperacaoLojaId()
+        );
+
+      const quantidade =
+        estoqueItem
+          ? Number(
+              estoqueItem.quantidade ?? 0
+            )
+          : 0;
+
+      select.insertAdjacentHTML(
+        "beforeend",
+        `
+          <option value="${escapeHtml(id)}">
+            ${escapeHtml(codigo || "")}
+            — ${escapeHtml(nome || "Material")}
+            ${unidade
+              ? " (" + escapeHtml(unidade) + ")"
+              : ""}
+            — Estoque: ${formatNumber(quantidade)}
+          </option>
+        `
+      );
+    });
+
+    if (
+      Array.from(select.options)
+        .some(
+          (option) =>
+            option.value === valorAtual
+        )
+    ) {
+      select.value = valorAtual;
+    }
   });
 }
 
-function formatDate(value) {
-  if (!value) return "-";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return escapeHtml(value);
+function getOperacaoLojaId() {
+  if (!state.usuario) {
+    return "";
   }
 
-  return date.toLocaleString("pt-BR");
+  if (
+    state.usuario.perfil === "ADMIN"
+  ) {
+    if (
+      state.lojaFiltro &&
+      String(state.lojaFiltro)
+        .trim()
+        .toUpperCase() !== "TODAS"
+    ) {
+      return String(
+        state.lojaFiltro
+      ).trim();
+    }
+
+    return "";
+  }
+
+  return String(
+    state.usuario.lojaId || ""
+  ).trim();
 }
 
-function openView(viewName) {
-  const allowedViews = ["dashboard", "estoque", "entrada", "saida", "movimentacoes", "usuarios"];
+function getSelectedMaterialId(selectId) {
+  const select = $(selectId);
 
-  if (!allowedViews.includes(viewName)) return;
+  if (!select) {
+    return "";
+  }
 
-  if (viewName === "usuarios" && state.usuario?.perfil !== "ADMIN") {
-    showGlobalMessage("Acesso permitido somente ao ADMIN.", "error");
+  return String(
+    select.value || ""
+  ).trim();
+}
+
+function getSelectedMaterial(selectId) {
+  const materialId =
+    getSelectedMaterialId(selectId);
+
+  if (!materialId) {
+    return null;
+  }
+
+  return findMaterialById(
+    materialId
+  );
+}
+
+function updateOperationStockPreview(
+  tipo
+) {
+  const selectId =
+    tipo === "entrada"
+      ? "entradaMaterial"
+      : "saidaMaterial";
+
+  const previewId =
+    tipo === "entrada"
+      ? "entradaEstoqueAtual"
+      : "saidaEstoqueAtual";
+
+  const preview =
+    $(previewId);
+
+  if (!preview) {
     return;
   }
 
-  document.querySelectorAll(".page-view").forEach((view) => {
+  const material =
+    getSelectedMaterial(selectId);
+
+  if (!material) {
+    preview.textContent = "—";
+    return;
+  }
+
+  const materialId =
+    material.ID ??
+    material.id ??
+    material.Id;
+
+  let lojaId =
+    getOperacaoLojaId();
+
+  if (!lojaId) {
+    preview.textContent =
+      "Selecione uma loja";
+    return;
+  }
+
+  const item =
+    getEstoqueItem(
+      materialId,
+      lojaId
+    );
+
+  preview.textContent =
+    item
+      ? formatNumber(item.quantidade)
+      : "0";
+}
+
+function updateOperationStoreInfo() {
+  const entradaInfo =
+    $("entradaLojaInfo");
+
+  const saidaInfo =
+    $("saidaLojaInfo");
+
+  const label =
+    getLojaLabel();
+
+  if (entradaInfo) {
+    entradaInfo.textContent =
+      label;
+  }
+
+  if (saidaInfo) {
+    saidaInfo.textContent =
+      label;
+  }
+}
+
+function clearOperationPreviews() {
+  const ids = [
+    "entradaEstoqueAtual",
+    "saidaEstoqueAtual"
+  ];
+
+  ids.forEach((id) => {
+    const element = $(id);
+
+    if (element) {
+      element.textContent = "—";
+    }
+  });
+}
+
+function handleMaterialSelection(
+  tipo
+) {
+  updateOperationStockPreview(
+    tipo
+  );
+}
+
+function refreshInterfaceAfterStockChange() {
+  renderDashboard();
+  renderStockTable();
+  renderMovementTables();
+  populateMaterialSelects();
+  updateOperationStoreInfo();
+  clearOperationPreviews();
+}
+
+function ensureAdminStoreSelected() {
+  if (
+    state.usuario?.perfil !== "ADMIN"
+  ) {
+    return true;
+  }
+
+  const lojaId =
+    getOperacaoLojaId();
+
+  if (!lojaId) {
+    alert(
+      "Para realizar esta operação, selecione uma loja específica."
+    );
+
+    return false;
+  }
+
+  return true;
+}
+
+function getFormValue(
+  form,
+  selectors
+) {
+  for (const selector of selectors) {
+    const element =
+      form.querySelector(selector);
+
+    if (
+      element &&
+      String(element.value).trim() !== ""
+    ) {
+      return String(
+        element.value
+      ).trim();
+    }
+  }
+
+  return "";
+}
+
+function getQuantityValue(
+  form,
+  selectors
+) {
+  const value =
+    getFormValue(
+      form,
+      selectors
+    );
+
+  const numero =
+    Number(value);
+
+  if (
+    !Number.isFinite(numero) ||
+    numero <= 0
+  ) {
+    return 0;
+  }
+
+  return numero;
+}
+function openView(viewName) {
+  const views = document.querySelectorAll(".view");
+
+  views.forEach((view) => {
     view.classList.add("hidden");
   });
 
   const target = $("view-" + viewName);
-  if (target) target.classList.remove("hidden");
 
-  document.querySelectorAll(".nav-btn").forEach((button) => {
-    button.classList.toggle("active", button.dataset.view === viewName);
-  });
+  if (!target) {
+    return;
+  }
 
-  const titles = {
-    dashboard: ["Dashboard", "Visão geral do estoque"],
-    estoque: ["Estoque", "Materiais disponíveis"],
-    entrada: ["Entrada", "Registrar entrada de material"],
-    saida: ["Saída", "Registrar saída de material"],
-    movimentacoes: ["Histórico", "Auditoria das movimentações"],
-    usuarios: ["Usuários", "Gerenciamento de acessos"]
-  };
+  target.classList.remove("hidden");
 
-  $("pageTitle").textContent = titles[viewName][0];
-  $("pageSubtitle").textContent = titles[viewName][1];
-}
+  document
+    .querySelectorAll(".menu-item")
+    .forEach((item) => {
+      item.classList.remove("active");
+    });
 
-function showGlobalMessage(message, type = "") {
-  const element = $("globalMessage");
-  element.textContent = message || "";
-  element.className = "global-message " + type;
+  const menuItem = document.querySelector(
+    `[data-view="${viewName}"]`
+  );
 
-  if (message) {
-    setTimeout(() => {
-      element.textContent = "";
-      element.className = "global-message";
-    }, 4000);
+  if (menuItem) {
+    menuItem.classList.add("active");
+  }
+
+  if (viewName === "estoque") {
+    renderStockTable();
+    renderLojaFilter();
+  }
+
+  if (viewName === "movimentacoes") {
+    renderMovementTables();
+  }
+
+  if (
+    viewName === "entrada" ||
+    viewName === "saida"
+  ) {
+    populateMaterialSelects();
+    updateOperationStoreInfo();
+    clearOperationPreviews();
+  }
+
+  if (viewName === "usuarios") {
+    if (
+      state.usuario?.perfil !== "ADMIN"
+    ) {
+      openView("dashboard");
+      return;
+    }
   }
 }
 
-async function registrarEntrada(event) {
-  event.preventDefault();
+function bindNavigation() {
+  document
+    .querySelectorAll("[data-view]")
+    .forEach((element) => {
+      element.addEventListener(
+        "click",
+        (event) => {
+          event.preventDefault();
 
-  const message = $("entradaMensagem");
-  showMessage(message, "");
+          const view =
+            element.dataset.view;
 
-  try {
+          if (!view) {
+            return;
+          }
+
+          if (
+            view === "usuarios" &&
+            state.usuario?.perfil !== "ADMIN"
+          ) {
+            return;
+          }
+
+          openView(view);
+        }
+      );
+    });
+}
+
+function bindLogout() {
+  const buttons =
+    document.querySelectorAll(
+      '[data-action="logout"], #logoutBtn'
+    );
+
+  buttons.forEach((button) => {
+    button.addEventListener(
+      "click",
+      async (event) => {
+        event.preventDefault();
+
+        await logout();
+      }
+    );
+  });
+}
+
+function bindStockFilter() {
+  const filtro =
+    $("estoqueLojaFiltro");
+
+  if (!filtro) {
+    return;
+  }
+
+  filtro.addEventListener(
+    "change",
+    () => {
+      atualizarFiltroLoja();
+    }
+  );
+}
+
+function bindMaterialPreviews() {
+  const entrada =
+    $("entradaMaterial");
+
+  const saida =
+    $("saidaMaterial");
+
+  if (entrada) {
+    entrada.addEventListener(
+      "change",
+      () => {
+        handleMaterialSelection(
+          "entrada"
+        );
+      }
+    );
+  }
+
+  if (saida) {
+    saida.addEventListener(
+      "change",
+      () => {
+        handleMaterialSelection(
+          "saida"
+        );
+      }
+    );
+  }
+}
+
+function bindLoginForm() {
+  const form =
+    $("loginForm");
+
+  if (!form) {
+    return;
+  }
+
+  form.addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
+
+      const usuario =
+        getFormValue(
+          form,
+          [
+            "#loginUsuario",
+            '[name="usuario"]',
+            '[name="login"]'
+          ]
+        );
+
+      const senha =
+        getFormValue(
+          form,
+          [
+            "#loginSenha",
+            '[name="senha"]',
+            '[name="password"]'
+          ]
+        );
+
+      const mensagem =
+        $("loginMessage");
+
+      if (!usuario || !senha) {
+        showMessage(
+          mensagem,
+          "Informe usuário e senha.",
+          "error"
+        );
+        return;
+      }
+
+      const botao =
+        form.querySelector(
+          'button[type="submit"]'
+        );
+
+      if (botao) {
+        botao.disabled = true;
+      }
+
+      showMessage(
+        mensagem,
+        "Entrando...",
+        ""
+      );
+
+      try {
+        await login(
+          usuario,
+          senha
+        );
+
+        showMessage(
+          mensagem,
+          "",
+          ""
+        );
+      } catch (error) {
+        showMessage(
+          mensagem,
+          error.message ||
+            "Não foi possível realizar o login.",
+          "error"
+        );
+      } finally {
+        if (botao) {
+          botao.disabled = false;
+        }
+      }
+    }
+  );
+}
+
+async function registrarEntrada(form) {
+  if (!state.token) {
+    throw new Error(
+      "Sessão expirada. Faça login novamente."
+    );
+  }
+
+  if (
+    state.usuario?.perfil ===
+    "ADMIN" &&
+    !ensureAdminStoreSelected()
+  ) {
+    return;
+  }
+
+  const material =
+    getSelectedMaterial(
+      "entradaMaterial"
+    );
+
+  if (!material) {
+    throw new Error(
+      "Selecione um material."
+    );
+  }
+
+  const quantidade =
+    getQuantityValue(
+      form,
+      [
+        "#entradaQuantidade",
+        '[name="quantidade"]',
+        '[name="qtd"]'
+      ]
+    );
+
+  if (quantidade <= 0) {
+    throw new Error(
+      "Informe uma quantidade válida."
+    );
+  }
+
+  const motivo =
+    getFormValue(
+      form,
+      [
+        "#entradaMotivo",
+        '[name="motivo"]',
+        '[name="observacao"]',
+        '[name="observação"]'
+      ]
+    );
+
+  const materialId =
+    material.ID ??
+    material.id ??
+    material.Id;
+
+  const lojaId =
+    getOperacaoLojaId();
+
+  if (!lojaId) {
+    throw new Error(
+      "Não foi possível identificar a loja da operação."
+    );
+  }
+
+  const data =
     await apiPost({
       acao: "registrar_entrada",
       token: state.token,
-      codigo: $("entradaCodigo").value,
-      quantidade: Number($("entradaQuantidade").value),
-      solicitante: $("entradaSolicitante").value.trim(),
-      motivo: $("entradaMotivo").value.trim(),
-      observacao: $("entradaObservacao").value.trim()
+      materialId: materialId,
+      lojaId: lojaId,
+      quantidade: quantidade,
+      motivo: motivo
     });
 
-    showMessage(message, "Entrada registrada com sucesso!", "success");
-    $("entradaForm").reset();
+  await loadData();
 
-    await loadData();
-  } catch (error) {
-    showMessage(message, error.message, "error");
-  }
+  refreshInterfaceAfterStockChange();
+
+  return data;
 }
 
-async function registrarSaida(event) {
-  event.preventDefault();
+async function registrarSaida(form) {
+  if (!state.token) {
+    throw new Error(
+      "Sessão expirada. Faça login novamente."
+    );
+  }
 
-  const message = $("saidaMensagem");
-  showMessage(message, "");
+  if (
+    state.usuario?.perfil ===
+    "ADMIN" &&
+    !ensureAdminStoreSelected()
+  ) {
+    return;
+  }
 
-  try {
+  const material =
+    getSelectedMaterial(
+      "saidaMaterial"
+    );
+
+  if (!material) {
+    throw new Error(
+      "Selecione um material."
+    );
+  }
+
+  const quantidade =
+    getQuantityValue(
+      form,
+      [
+        "#saidaQuantidade",
+        '[name="quantidade"]',
+        '[name="qtd"]'
+      ]
+    );
+
+  if (quantidade <= 0) {
+    throw new Error(
+      "Informe uma quantidade válida."
+    );
+  }
+
+  const motivo =
+    getFormValue(
+      form,
+      [
+        "#saidaMotivo",
+        '[name="motivo"]',
+        '[name="observacao"]',
+        '[name="observação"]'
+      ]
+    );
+
+  const materialId =
+    material.ID ??
+    material.id ??
+    material.Id;
+
+  const lojaId =
+    getOperacaoLojaId();
+
+  if (!lojaId) {
+    throw new Error(
+      "Não foi possível identificar a loja da operação."
+    );
+  }
+
+  const data =
     await apiPost({
       acao: "registrar_saida",
       token: state.token,
-      codigo: $("saidaCodigo").value,
-      quantidade: Number($("saidaQuantidade").value),
-      solicitante: $("saidaSolicitante").value.trim(),
-      motivo: $("saidaMotivo").value.trim(),
-      observacao: $("saidaObservacao").value.trim()
+      materialId: materialId,
+      lojaId: lojaId,
+      quantidade: quantidade,
+      motivo: motivo
     });
 
-    showMessage(message, "Saída registrada com sucesso!", "success");
-    $("saidaForm").reset();
+  await loadData();
 
-    await loadData();
-  } catch (error) {
-    showMessage(message, error.message, "error");
-  }
+  refreshInterfaceAfterStockChange();
+
+  return data;
 }
 
-async function cadastrarUsuario(event) {
-  event.preventDefault();
+function bindEntryForm() {
+  const form =
+    $("entradaForm");
 
-  const message = $("usuarioMensagem");
-  showMessage(message, "");
-
-  try {
-    await apiPost({
-      acao: "cadastrar_usuario",
-      token: state.token,
-      nome: $("usuarioNome").value.trim(),
-      usuario: $("usuarioLogin").value.trim(),
-      senha: $("usuarioSenha").value,
-      perfil: $("usuarioPerfil").value
-    });
-
-    showMessage(message, "Usuário cadastrado com sucesso!", "success");
-    $("usuarioForm").reset();
-  } catch (error) {
-    showMessage(message, error.message, "error");
+  if (!form) {
+    return;
   }
-}
 
-function setupEvents() {
-  $("loginForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
+  form.addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
 
-    showMessage($("loginMensagem"), "Entrando...");
+      const mensagem =
+        $("entradaMessage");
 
-    try {
-      await login(
-        $("loginUsuario").value.trim(),
-        $("loginSenha").value
+      const botao =
+        form.querySelector(
+          'button[type="submit"]'
+        );
+
+      if (botao) {
+        botao.disabled = true;
+      }
+
+      showMessage(
+        mensagem,
+        "Registrando entrada...",
+        ""
       );
-      showMessage($("loginMensagem"), "");
-    } catch (error) {
-      showMessage($("loginMensagem"), error.message, "error");
+
+      try {
+        await registrarEntrada(
+          form
+        );
+
+        showMessage(
+          mensagem,
+          "Entrada registrada com sucesso!",
+          "success"
+        );
+
+        form.reset();
+
+        clearOperationPreviews();
+      } catch (error) {
+        showMessage(
+          mensagem,
+          error.message ||
+            "Não foi possível registrar a entrada.",
+          "error"
+        );
+      } finally {
+        if (botao) {
+          botao.disabled = false;
+        }
+      }
     }
-  });
-
-  $("logoutBtn").addEventListener("click", logout);
-
-  document.querySelectorAll("[data-view]").forEach((button) => {
-    button.addEventListener("click", () => openView(button.dataset.view));
-  });
-
-  $("entradaForm").addEventListener("submit", registrarEntrada);
-  $("saidaForm").addEventListener("submit", registrarSaida);
-  $("usuarioForm").addEventListener("submit", cadastrarUsuario);
-
-  $("refreshStockBtn").addEventListener("click", async () => {
-    try {
-      await loadData();
-      showGlobalMessage("Estoque atualizado.", "success");
-    } catch (error) {
-      showGlobalMessage(error.message, "error");
-    }
-  });
-
-  $("refreshMovBtn").addEventListener("click", async () => {
-    try {
-      await loadData();
-      showGlobalMessage("Histórico atualizado.", "success");
-    } catch (error) {
-      showGlobalMessage(error.message, "error");
-    }
-  });
-
-  $("estoqueBusca").addEventListener("input", renderMaterials);
-  $("movBusca").addEventListener("input", renderMovementTables);
+  );
 }
 
-async function init() {
-  setupEvents();
+function bindExitForm() {
+  const form =
+    $("saidaForm");
 
-  const valid = await validateSession();
+  if (!form) {
+    return;
+  }
 
-  if (!valid) {
+  form.addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
+
+      const mensagem =
+        $("saidaMessage");
+
+      const botao =
+        form.querySelector(
+          'button[type="submit"]'
+        );
+
+      if (botao) {
+        botao.disabled = true;
+      }
+
+      showMessage(
+        mensagem,
+        "Registrando saída...",
+        ""
+      );
+
+      try {
+        await registrarSaida(
+          form
+        );
+
+        showMessage(
+          mensagem,
+          "Saída registrada com sucesso!",
+          "success"
+        );
+
+        form.reset();
+
+        clearOperationPreviews();
+      } catch (error) {
+        showMessage(
+          mensagem,
+          error.message ||
+            "Não foi possível registrar a saída.",
+          "error"
+        );
+      } finally {
+        if (botao) {
+          botao.disabled = false;
+        }
+      }
+    }
+  );
+}
+function bindUserForm() {
+  const form = $("usuarioForm");
+
+  if (!form) {
+    return;
+  }
+
+  form.addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
+
+      if (state.usuario?.perfil !== "ADMIN") {
+        return;
+      }
+
+      const nome = getFormValue(form, [
+        "#usuarioNome",
+        '[name="nome"]'
+      ]);
+
+      const usuario = getFormValue(form, [
+        "#usuarioLogin",
+        '[name="usuario"]',
+        '[name="login"]'
+      ]);
+
+      const senha = getFormValue(form, [
+        "#usuarioSenha",
+        '[name="senha"]',
+        '[name="password"]'
+      ]);
+
+      const perfil = getFormValue(form, [
+        "#usuarioPerfil",
+        '[name="perfil"]'
+      ]);
+
+      const lojaId = getFormValue(form, [
+        "#usuarioLoja",
+        '[name="lojaId"]',
+        '[name="loja"]'
+      ]);
+
+      const mensagem = $("usuarioMessage");
+
+      if (!nome) {
+        showMessage(
+          mensagem,
+          "Informe o nome do usuário.",
+          "error"
+        );
+        return;
+      }
+
+      if (!usuario) {
+        showMessage(
+          mensagem,
+          "Informe o login do usuário.",
+          "error"
+        );
+        return;
+      }
+
+      if (!senha) {
+        showMessage(
+          mensagem,
+          "Informe a senha do usuário.",
+          "error"
+        );
+        return;
+      }
+
+      if (!perfil) {
+        showMessage(
+          mensagem,
+          "Selecione o perfil do usuário.",
+          "error"
+        );
+        return;
+      }
+
+      if (
+        perfil === "PREENCHEDOR" &&
+        !lojaId
+      ) {
+        showMessage(
+          mensagem,
+          "Selecione a loja do PREENCHEDOR.",
+          "error"
+        );
+        return;
+      }
+
+      const botao = form.querySelector(
+        'button[type="submit"]'
+      );
+
+      if (botao) {
+        botao.disabled = true;
+      }
+
+      showMessage(
+        mensagem,
+        "Cadastrando usuário...",
+        ""
+      );
+
+      try {
+        await apiPost({
+          acao: "cadastrar_usuario",
+          token: state.token,
+          nome: nome,
+          usuario: usuario,
+          senha: senha,
+          perfil: perfil,
+          lojaId:
+            perfil === "ADMIN"
+              ? "TODAS"
+              : lojaId
+        });
+
+        showMessage(
+          mensagem,
+          "Usuário cadastrado com sucesso!",
+          "success"
+        );
+
+        form.reset();
+      } catch (error) {
+        showMessage(
+          mensagem,
+          error.message ||
+            "Não foi possível cadastrar o usuário.",
+          "error"
+        );
+      } finally {
+        if (botao) {
+          botao.disabled = false;
+        }
+      }
+    }
+  );
+}
+
+function bindRefreshButtons() {
+  const buttons = document.querySelectorAll(
+    '[data-action="refresh"], #refreshBtn, #refreshEstoqueBtn, #refreshMovimentacoesBtn'
+  );
+
+  buttons.forEach((button) => {
+    button.addEventListener(
+      "click",
+      async (event) => {
+        event.preventDefault();
+
+        const textoOriginal =
+          button.textContent;
+
+        button.disabled = true;
+        button.textContent =
+          "Atualizando...";
+
+        try {
+          await loadData();
+        } catch (error) {
+          console.error(
+            "Erro ao atualizar:",
+            error
+          );
+
+          alert(
+            error.message ||
+              "Não foi possível atualizar os dados."
+          );
+        } finally {
+          button.disabled = false;
+          button.textContent =
+            textoOriginal;
+        }
+      }
+    );
+  });
+}
+
+function bindForms() {
+  bindLoginForm();
+  bindEntryForm();
+  bindExitForm();
+  bindUserForm();
+}
+
+function bindEvents() {
+  bindNavigation();
+  bindLogout();
+  bindStockFilter();
+  bindMaterialPreviews();
+  bindForms();
+  bindRefreshButtons();
+}
+
+function restoreLocalUser() {
+  try {
+    const usuarioSalvo =
+      localStorage.getItem(
+        "officenet_usuario"
+      );
+
+    if (!usuarioSalvo) {
+      return null;
+    }
+
+    const usuario =
+      JSON.parse(usuarioSalvo);
+
+    if (
+      !usuario ||
+      !usuario.perfil
+    ) {
+      return null;
+    }
+
+    return usuario;
+  } catch {
+    return null;
+  }
+}
+
+async function initializeApp() {
+  bindEvents();
+
+  const possuiSessao =
+    await validateSession();
+
+  if (!possuiSessao) {
+    showLogin();
+    return;
+  }
+
+  if (!state.usuario) {
+    state.usuario =
+      restoreLocalUser();
+  }
+
+  if (!state.usuario) {
+    clearSession();
     showLogin();
     return;
   }
@@ -573,10 +1923,302 @@ async function init() {
 
   try {
     await loadData();
+
     openView("dashboard");
   } catch (error) {
-    showGlobalMessage(error.message, "error");
+    console.error(
+      "Erro ao carregar o sistema:",
+      error
+    );
+
+    alert(
+      error.message ||
+        "Não foi possível carregar os dados."
+    );
   }
 }
 
-document.addEventListener("DOMContentLoaded", init);
+function setupInitialVisibility() {
+  const loginView =
+    $("loginView");
+
+  const appView =
+    $("appView");
+
+  if (!state.token) {
+    if (loginView) {
+      loginView.classList.remove(
+        "hidden"
+      );
+    }
+
+    if (appView) {
+      appView.classList.add(
+        "hidden"
+      );
+    }
+  }
+}
+
+function setupKeyboardShortcuts() {
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (
+        event.key === "Escape"
+      ) {
+        const modal =
+          document.querySelector(
+            ".modal:not(.hidden)"
+          );
+
+        if (modal) {
+          modal.classList.add(
+            "hidden"
+          );
+        }
+      }
+    }
+  );
+}
+
+function startApplication() {
+  setupInitialVisibility();
+  setupKeyboardShortcuts();
+  initializeApp();
+}
+
+if (
+  document.readyState ===
+  "loading"
+) {
+  document.addEventListener(
+    "DOMContentLoaded",
+    startApplication
+  );
+} else {
+  startApplication();
+}
+function atualizarInterfaceCompleta() {
+  renderAll();
+  updateOperationStoreInfo();
+  clearOperationPreviews();
+}
+
+function selecionarLojaAdmin(lojaId) {
+  if (
+    state.usuario?.perfil !== "ADMIN"
+  ) {
+    return;
+  }
+
+  state.lojaFiltro =
+    String(lojaId || "TODAS").trim();
+
+  renderDashboard();
+  renderStockTable();
+  renderMovementTables();
+  populateMaterialSelects();
+  updateOperationStoreInfo();
+}
+
+function configurarSeletorLoja() {
+  const filtro =
+    $("estoqueLojaFiltro");
+
+  if (!filtro) {
+    return;
+  }
+
+  filtro.addEventListener(
+    "change",
+    (event) => {
+      selecionarLojaAdmin(
+        event.target.value
+      );
+    }
+  );
+}
+
+function configurarLojaUsuario() {
+  const perfil =
+    $("usuarioPerfil");
+
+  const loja =
+    $("usuarioLoja");
+
+  const lojaContainer =
+    $("usuarioLojaContainer");
+
+  if (
+    !perfil ||
+    !loja
+  ) {
+    return;
+  }
+
+  function atualizar() {
+    const isPreenchedor =
+      perfil.value === "PREENCHEDOR";
+
+    loja.disabled =
+      !isPreenchedor;
+
+    if (lojaContainer) {
+      lojaContainer.classList.toggle(
+        "hidden",
+        !isPreenchedor
+      );
+    }
+
+    if (!isPreenchedor) {
+      loja.value = "TODAS";
+    }
+  }
+
+  perfil.addEventListener(
+    "change",
+    atualizar
+  );
+
+  atualizar();
+}
+
+function carregarLojasDoEstoque() {
+  const select =
+    $("usuarioLoja");
+
+  if (!select) {
+    return;
+  }
+
+  const lojas =
+    getLojasFromEstoque();
+
+  select.innerHTML = `
+    <option value="">
+      Selecione a loja
+    </option>
+
+    ${lojas.map((loja) => `
+      <option value="${escapeHtml(loja.id)}">
+        ${escapeHtml(loja.codigo)}
+        — ${escapeHtml(loja.nome)}
+      </option>
+    `).join("")}
+  `;
+}
+
+function configurarInterfaceMultiLoja() {
+  carregarLojasDoEstoque();
+  configurarSeletorLoja();
+  configurarLojaUsuario();
+
+  renderLojaFilter();
+  updateOperationStoreInfo();
+}
+
+function verificarIntegridadeSessao() {
+  if (!state.token) {
+    return false;
+  }
+
+  if (!state.usuario) {
+    return false;
+  }
+
+  if (
+    state.usuario.perfil !== "ADMIN" &&
+    state.usuario.perfil !== "PREENCHEDOR"
+  ) {
+    console.error(
+      "Perfil de usuário inválido."
+    );
+
+    clearSession();
+    showLogin();
+
+    return false;
+  }
+
+  if (
+    state.usuario.perfil === "PREENCHEDOR" &&
+    (
+      !state.usuario.lojaId ||
+      String(
+        state.usuario.lojaId
+      )
+        .trim()
+        .toUpperCase() === "TODAS"
+    )
+  ) {
+    console.error(
+      "PREENCHEDOR sem loja vinculada."
+    );
+
+    clearSession();
+    showLogin();
+
+    return false;
+  }
+
+  return true;
+}
+
+async function inicializarSistemaMultiLoja() {
+  const sessaoValida =
+    await validateSession();
+
+  if (!sessaoValida) {
+    showLogin();
+    return;
+  }
+
+  if (
+    !verificarIntegridadeSessao()
+  ) {
+    return;
+  }
+
+  if (
+    state.usuario.perfil ===
+    "PREENCHEDOR"
+  ) {
+    state.lojaFiltro =
+      String(
+        state.usuario.lojaId
+      ).trim();
+  } else {
+    state.lojaFiltro = "TODAS";
+  }
+
+  showApp();
+
+  try {
+    await loadData();
+
+    configurarInterfaceMultiLoja();
+
+    atualizarInterfaceCompleta();
+
+    openView("dashboard");
+  } catch (error) {
+    console.error(
+      "Erro na inicialização:",
+      error
+    );
+
+    alert(
+      error.message ||
+        "Não foi possível carregar os dados do sistema."
+    );
+  }
+}
+
+function substituirInicializacaoAntiga() {
+  /*
+   * Esta função existe apenas para manter
+   * compatibilidade com versões anteriores.
+   */
+  return inicializarSistemaMultiLoja();
+}
