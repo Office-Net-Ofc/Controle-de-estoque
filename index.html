@@ -165,19 +165,72 @@
         </div>
 
         <div class="stats-grid">
-          <article class="stat-card">
-            <span>Materiais</span>
-            <strong id="statMateriais">0</strong>
-          </article>
-          <article class="stat-card">
-            <span>Estoque baixo</span>
-            <strong id="statBaixo">0</strong>
-          </article>
-          <article class="stat-card">
-            <span>Movimentações</span>
-            <strong id="statMovimentacoes">0</strong>
-          </article>
-        </div>
+
+  <!-- MATERIAIS -->
+  <article class="stat-card stat-materials">
+
+    <div class="stat-top">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 8l-9-5-9 5 9 5 9-5z"></path>
+          <path d="M3 8v8l9 5 9-5V8"></path>
+          <path d="M12 13v8"></path>
+        </svg>
+      </div>
+
+      <span class="stat-label">Materiais</span>
+    </div>
+
+    <strong id="statMateriais">0</strong>
+
+    <small>Itens cadastrados</small>
+
+  </article>
+
+
+  <!-- ESTOQUE BAIXO -->
+  <article class="stat-card stat-low">
+
+    <div class="stat-top">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.3 3.4L2.8 16.2A2 2 0 0 0 4.5 19h15a2 2 0 0 0 1.7-2.8L13.7 3.4a2 2 0 0 0-3.4 0z"></path>
+          <path d="M12 9v4"></path>
+          <path d="M12 16h.01"></path>
+        </svg>
+      </div>
+
+      <span class="stat-label">Estoque baixo</span>
+    </div>
+
+    <strong id="statBaixo">0</strong>
+
+    <small>Itens precisam de atenção</small>
+
+  </article>
+
+
+  <!-- MOVIMENTAÇÕES -->
+  <article class="stat-card stat-movements">
+
+    <div class="stat-top">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h18"></path>
+          <path d="M13 6l6 6-6 6"></path>
+        </svg>
+      </div>
+
+      <span class="stat-label">Movimentações</span>
+    </div>
+
+    <strong id="statMovimentacoes">0</strong>
+
+    <small>Registros realizados</small>
+
+  </article>
+
+</div>
 
         <article class="panel">
           <div class="panel-head">
