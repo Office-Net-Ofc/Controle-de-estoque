@@ -1505,3 +1505,285 @@ tbody tr:last-child td {
 .quantity-cell {
   text-align: left;
 }
+/* =========================================================
+   ESTOQUE - VISUAL PROFISSIONAL
+   ========================================================= */
+
+/* =========================================================
+   BARRA DE PESQUISA
+   ========================================================= */
+
+.search-row {
+  padding: 18px 20px;
+
+  background: #fafbfc;
+
+  border-bottom: 1px solid var(--border);
+}
+
+.search-row input {
+  max-width: 520px;
+
+  min-height: 44px;
+
+  padding-left: 42px;
+
+  background-color: #ffffff;
+
+  border: 1px solid #dbe2ea;
+  border-radius: 10px;
+
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+
+  /*
+    Ícone de pesquisa desenhado em CSS.
+  */
+
+  background-image:
+    radial-gradient(
+      circle at 18px 18px,
+      transparent 5px,
+      #94a3b8 5.5px,
+      #94a3b8 7px,
+      transparent 7.5px
+    ),
+    linear-gradient(
+      45deg,
+      transparent 44%,
+      #94a3b8 45%,
+      #94a3b8 55%,
+      transparent 56%
+    );
+
+  background-size:
+    24px 24px,
+    9px 9px;
+
+  background-position:
+    7px 5px,
+    22px 23px;
+
+  background-repeat: no-repeat;
+}
+
+.search-row input:focus {
+  border-color: var(--orange);
+
+  box-shadow:
+    0 0 0 3px rgba(249, 115, 22, 0.10);
+}
+
+/* =========================================================
+   TABELA DE ESTOQUE
+   ========================================================= */
+
+#view-estoque table {
+  min-width: 800px;
+}
+
+#view-estoque th {
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+
+#view-estoque td {
+  height: 58px;
+
+  vertical-align: middle;
+}
+
+/* =========================================================
+   CÓDIGO DO MATERIAL
+   ========================================================= */
+
+#view-estoque td:first-child strong {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 5px 8px;
+
+  border-radius: 6px;
+
+  background: #f1f5f9;
+
+  color: #475569;
+
+  font-size: 11px;
+  font-weight: 800;
+
+  letter-spacing: 0.02em;
+}
+
+/* =========================================================
+   NOME DO MATERIAL
+   ========================================================= */
+
+#view-estoque td:nth-child(2) {
+  color: var(--navy);
+
+  font-weight: 700;
+}
+
+/* =========================================================
+   CATEGORIA E UNIDADE
+   ========================================================= */
+
+#view-estoque td:nth-child(3),
+#view-estoque td:nth-child(4) {
+  color: #64748b;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* =========================================================
+   QUANTIDADE EM ESTOQUE
+   ========================================================= */
+
+#view-estoque td:nth-child(5) strong {
+  color: var(--navy);
+
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* =========================================================
+   ESTOQUE MÍNIMO
+   ========================================================= */
+
+#view-estoque td:nth-child(6) {
+  color: #64748b;
+
+  font-weight: 700;
+}
+
+/* =========================================================
+   STATUS
+   ========================================================= */
+
+#view-estoque .status {
+  position: relative;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  min-width: 82px;
+
+  justify-content: center;
+
+  padding: 6px 10px;
+
+  border-radius: 999px;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  text-transform: uppercase;
+}
+
+/* Bolinha */
+
+#view-estoque .status::before {
+  content: "";
+
+  width: 6px;
+  height: 6px;
+
+  flex: 0 0 6px;
+
+  border-radius: 50%;
+
+  background: currentColor;
+}
+
+/* NORMAL */
+
+#view-estoque .status.normal {
+  background: #ecfdf3;
+
+  color: #15803d;
+
+  border: 1px solid #bbf7d0;
+}
+
+/* ESTOQUE BAIXO */
+
+#view-estoque .status.baixo {
+  background: #fff7ed;
+
+  color: #ea580c;
+
+  border: 1px solid #fed7aa;
+}
+
+/* =========================================================
+   LINHAS DA TABELA
+   ========================================================= */
+
+#view-estoque tbody tr {
+  transition:
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+#view-estoque tbody tr:hover {
+  background: #fffaf5;
+}
+
+/* =========================================================
+   COLUNAS NUMÉRICAS
+   ========================================================= */
+
+#view-estoque th:nth-child(5),
+#view-estoque th:nth-child(6),
+#view-estoque td:nth-child(5),
+#view-estoque td:nth-child(6) {
+  text-align: center;
+}
+
+/* =========================================================
+   CABEÇALHO
+   ========================================================= */
+
+#view-estoque .panel-head {
+  min-height: 84px;
+}
+
+#view-estoque .panel-head .secondary-btn {
+  min-width: 105px;
+}
+
+/* =========================================================
+   ESTADO VAZIO
+   ========================================================= */
+
+#view-estoque tbody tr td[colspan] {
+  padding: 45px 20px;
+
+  color: #94a3b8;
+
+  text-align: center;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* =========================================================
+   RESPONSIVIDADE
+   ========================================================= */
+
+@media (max-width: 620px) {
+
+  #view-estoque .panel-head .secondary-btn {
+    width: 100%;
+  }
+
+  #view-estoque table {
+    min-width: 800px;
+  }
+
+  .search-row input {
+    max-width: none;
+  }
+}
