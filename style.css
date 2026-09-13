@@ -1787,3 +1787,231 @@ tbody tr:last-child td {
     max-width: none;
   }
 }
+/* =========================================================
+   TELA DE ENTRADA
+   ========================================================= */
+
+#view-entrada .form-panel {
+  overflow: hidden;
+}
+
+/* ---------------------------------------------------------
+   CABEÇALHO
+   --------------------------------------------------------- */
+
+#view-entrada .panel-head {
+  position: relative;
+
+  min-height: 100px;
+
+  padding-left: 28px;
+}
+
+#view-entrada .panel-head::before {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  top: 0;
+  bottom: 0;
+
+  width: 5px;
+
+  background: var(--green);
+}
+
+#view-entrada .panel-head h3 {
+  color: var(--navy);
+
+  font-size: 20px;
+}
+
+#view-entrada .panel-head p {
+  font-size: 13px;
+}
+
+/* ---------------------------------------------------------
+   FORMULÁRIO
+   --------------------------------------------------------- */
+
+#view-entrada .form-grid {
+  background: #ffffff;
+
+  padding: 28px;
+}
+
+/* ---------------------------------------------------------
+   CAMPOS
+   --------------------------------------------------------- */
+
+#view-entrada label {
+  margin-bottom: 8px;
+
+  color: #334155;
+
+  font-size: 13px;
+  font-weight: 750;
+}
+
+#view-entrada input,
+#view-entrada select,
+#view-entrada textarea {
+  min-height: 45px;
+
+  border-color: #dbe3ea;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+#view-entrada input:hover,
+#view-entrada select:hover,
+#view-entrada textarea:hover {
+  border-color: #cbd5e1;
+}
+
+#view-entrada input:focus,
+#view-entrada select:focus,
+#view-entrada textarea:focus {
+  border-color: var(--green);
+
+  box-shadow:
+    0 0 0 3px rgba(22, 163, 74, 0.10);
+}
+
+/* ---------------------------------------------------------
+   SELECT DE MATERIAL
+   --------------------------------------------------------- */
+
+#entradaCodigo {
+  font-weight: 600;
+
+  color: var(--navy);
+
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------
+   QUANTIDADE
+   --------------------------------------------------------- */
+
+#entradaQuantidade {
+  font-weight: 700;
+
+  color: var(--navy);
+}
+
+/* ---------------------------------------------------------
+   OBSERVAÇÃO
+   --------------------------------------------------------- */
+
+#entradaObservacao {
+  min-height: 110px;
+}
+
+/* ---------------------------------------------------------
+   BOTÃO REGISTRAR
+   --------------------------------------------------------- */
+
+#view-entrada .form-actions {
+  padding-top: 6px;
+}
+
+#view-entrada .form-actions .primary-btn {
+  min-width: 190px;
+
+  background: var(--green);
+
+  box-shadow:
+    0 5px 14px rgba(22, 163, 74, 0.18);
+}
+
+#view-entrada .form-actions .primary-btn:hover {
+  background: var(--green-dark);
+
+  box-shadow:
+    0 7px 18px rgba(22, 163, 74, 0.25);
+}
+
+/* ---------------------------------------------------------
+   MENSAGEM DE SUCESSO
+   --------------------------------------------------------- */
+
+#view-entrada #entradaMensagem.success {
+  display: flex;
+  align-items: center;
+
+  min-height: 44px;
+
+  padding: 10px 13px;
+
+  margin-top: 0;
+
+  background: var(--green-light);
+
+  border: 1px solid #bbf7d0;
+  border-radius: 9px;
+
+  color: var(--green-dark);
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------
+   MENSAGEM DE ERRO
+   --------------------------------------------------------- */
+
+#view-entrada #entradaMensagem.error {
+  display: flex;
+  align-items: center;
+
+  min-height: 44px;
+
+  padding: 10px 13px;
+
+  margin-top: 0;
+
+  background: var(--danger-light);
+
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+
+  color: var(--danger);
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------
+   ORGANIZAÇÃO VISUAL DOS CAMPOS
+   --------------------------------------------------------- */
+
+#view-entrada .form-grid > div {
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------
+   RESPONSIVO
+   --------------------------------------------------------- */
+
+@media (max-width: 620px) {
+
+  #view-entrada .panel-head {
+    min-height: auto;
+
+    padding-left: 22px;
+  }
+
+  #view-entrada .form-grid {
+    padding: 20px;
+  }
+
+  #view-entrada .form-actions .primary-btn {
+    width: 100%;
+    min-width: 0;
+  }
+}
