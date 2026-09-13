@@ -2222,3 +2222,145 @@ function substituirInicializacaoAntiga() {
    */
   return inicializarSistemaMultiLoja();
 }
+function corrigirCompatibilidadeHTML() {
+  // Mensagens
+  const loginMensagem =
+    $("loginMensagem");
+
+  if (
+    loginMensagem &&
+    !$("loginMessage")
+  ) {
+    loginMensagem.id =
+      "loginMessage";
+  }
+
+  const entradaMensagem =
+    $("entradaMensagem");
+
+  if (
+    entradaMensagem &&
+    !$("entradaMessage")
+  ) {
+    entradaMensagem.id =
+      "entradaMessage";
+  }
+
+  const saidaMensagem =
+    $("saidaMensagem");
+
+  if (
+    saidaMensagem &&
+    !$("saidaMessage")
+  ) {
+    saidaMensagem.id =
+      "saidaMessage";
+  }
+
+  const usuarioMensagem =
+    $("usuarioMensagem");
+
+  if (
+    usuarioMensagem &&
+    !$("usuarioMessage")
+  ) {
+    usuarioMensagem.id =
+      "usuarioMessage";
+  }
+
+  // Select de materiais
+  const entradaCodigo =
+    $("entradaCodigo");
+
+  if (
+    entradaCodigo &&
+    !$("entradaMaterial")
+  ) {
+    entradaCodigo.id =
+      "entradaMaterial";
+  }
+
+  const saidaCodigo =
+    $("saidaCodigo");
+
+  if (
+    saidaCodigo &&
+    !$("saidaMaterial")
+  ) {
+    saidaCodigo.id =
+      "saidaMaterial";
+  }
+
+  // Campo de busca do estoque
+  const estoqueBusca =
+    $("estoqueBusca");
+
+  if (estoqueBusca) {
+    estoqueBusca.addEventListener(
+      "input",
+      () => {
+        const termo =
+          String(
+            estoqueBusca.value || ""
+          )
+            .trim()
+            .toLowerCase();
+
+        const linhas =
+          document.querySelectorAll(
+            "#materiaisTable tr"
+          );
+
+        linhas.forEach((linha) => {
+          const texto =
+            linha.textContent
+              .toLowerCase();
+
+          linha.style.display =
+            !termo ||
+            texto.includes(termo)
+              ? ""
+              : "none";
+        });
+      }
+    );
+  }
+
+  // Campo de busca do histórico
+  const movBusca =
+    $("movBusca");
+
+  if (movBusca) {
+    movBusca.addEventListener(
+      "input",
+      () => {
+        const termo =
+          String(
+            movBusca.value || ""
+          )
+            .trim()
+            .toLowerCase();
+
+        const linhas =
+          document.querySelectorAll(
+            "#movimentacoesTable tr"
+          );
+
+        linhas.forEach((linha) => {
+          const texto =
+            linha.textContent
+              .toLowerCase();
+
+          linha.style.display =
+            !termo ||
+            texto.includes(termo)
+              ? ""
+              : "none";
+        });
+      }
+    );
+  }
+}
+
+const inicializarCompatibilidade =
+  corrigirCompatibilidadeHTML;
