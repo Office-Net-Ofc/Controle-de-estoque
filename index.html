@@ -146,10 +146,10 @@
           <p id="pageSubtitle">Visão geral do estoque</p>
         </div>
         <div class="user-box">
-  <span id="userName">Usuário</span>
-  <small id="userProfile">PERFIL</small>
-  <small id="userStore" class="user-store">Loja</small>
-</div>
+          <span id="userName">Usuário</span>
+          <small id="userProfile">PERFIL</small>
+          <small id="userStore" class="user-store">Loja</small>
+        </div>
       </header>
 
       <div id="globalMessage" class="global-message"></div>
@@ -160,9 +160,7 @@
           <div>
             <span class="eyebrow">CONTROLE DE ESTOQUE</span>
             <h3>Olá, <span id="welcomeName">usuário</span>! 👋</h3>
-            <p id="welcomeStore">
-  Acompanhe os materiais e registre as movimentações da OfficeNET.
-</p>
+            <p id="welcomeStore">Acompanhe os materiais e registre as movimentações da OfficeNET.</p>
           </div>
           <button class="primary-btn" data-view="estoque">Ver estoque</button>
         </div>
@@ -237,25 +235,12 @@
 
         <article class="panel">
           <div class="panel-head">
-  <div>
-    <h3>Estoque atual</h3>
-    <p>Consulte os materiais disponíveis por loja.</p>
-  </div>
-
-  <div class="stock-actions">
-    <select id="estoqueLojaFiltro" class="store-filter">
-      <option value="TODAS">Todas as lojas</option>
-    </select>
-
-    <button
-      class="secondary-btn"
-      id="refreshStockBtn"
-      type="button"
-    >
-      Atualizar
-    </button>
-  </div>
-</div>
+            <div>
+              <h3>Últimas movimentações</h3>
+              <p>Registros mais recentes do estoque</p>
+            </div>
+            <button class="secondary-btn" data-view="movimentacoes">Ver todas</button>
+          </div>
           <div class="table-wrap">
             <table>
               <thead>
@@ -279,14 +264,18 @@
           <div class="panel-head">
             <div>
               <h3>Estoque atual</h3>
-              <p>Consulte todos os materiais cadastrados.</p>
+              <p id="estoqueContexto">Estoque da loja selecionada.</p>
             </div>
             <button class="secondary-btn" id="refreshStockBtn">Atualizar</button>
           </div>
 
-          <div class="search-row">
+          <div class="search-row stock-filter-row">
+            <select id="estoqueLojaFiltro" class="stock-store-filter admin-only hidden">
+              <option value="TODAS">Todas as lojas</option>
+            </select>
             <input id="estoqueBusca" type="search" placeholder="Pesquisar por código, material ou categoria...">
           </div>
+          <div id="estoqueResumoLoja" class="store-summary"></div>
 
           <div class="table-wrap">
             <table>
@@ -314,6 +303,7 @@
             <div>
               <h3>Registrar entrada</h3>
               <p>Adicione materiais ao estoque.</p>
+              <div id="entradaLojaContext" class="operation-store-context">Loja da operação: <strong>carregando...</strong></div>
             </div>
           </div>
 
@@ -353,6 +343,7 @@
             <div>
               <h3>Registrar saída</h3>
               <p>Retire materiais do estoque com rastreabilidade.</p>
+              <div id="saidaLojaContext" class="operation-store-context">Loja da operação: <strong>carregando...</strong></div>
             </div>
           </div>
 
@@ -454,14 +445,12 @@
               </select>
             </div>
             <div id="usuarioLojaContainer">
-  <label for="usuarioLoja">Loja</label>
-
-  <select id="usuarioLoja">
-    <option value="">
-      Selecione a loja
-    </option>
-  </select>
-</div>
+              <label for="usuarioLoja">Loja vinculada</label>
+              <select id="usuarioLoja">
+                <option value="">Selecione a loja...</option>
+              </select>
+              <small class="field-help">Obrigatório para PREENCHEDOR.</small>
+            </div>
             <div class="full form-actions">
               <button class="primary-btn" type="submit">Cadastrar usuário</button>
             </div>
