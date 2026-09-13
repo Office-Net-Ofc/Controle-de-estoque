@@ -2431,3 +2431,72 @@ tbody tr:last-child td {
     min-width: 0;
   }
 }
+/* =========================================================
+   MULTI-LOJA — FILTRO DE ESTOQUE
+   ========================================================= */
+
+.stock-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.store-filter {
+  min-width: 240px;
+  height: 42px;
+  padding: 0 38px 0 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.store-filter:hover {
+  border-color: #f97316;
+}
+
+.store-filter:focus {
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
+}
+
+.store-filter:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+
+.user-store {
+  color: var(--orange) !important;
+  font-weight: 800 !important;
+}
+
+#usuarioLojaContainer.hidden {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .stock-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .stock-actions .store-filter,
+  .stock-actions .secondary-btn {
+    width: 100%;
+  }
+
+  .store-filter {
+    min-width: 0;
+  }
+}
