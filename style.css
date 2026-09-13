@@ -2431,49 +2431,97 @@ tbody tr:last-child td {
     min-width: 0;
   }
 }
+
 /* =========================================================
-   MULTI-LOJA — FILTRO DE ESTOQUE
+   FILTRO DE ESTOQUE POR LOJA
    ========================================================= */
 
-.stock-actions {
-  display: flex;
+.stock-filter-row {
   align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  flex-wrap: wrap;
 }
 
-.store-filter {
-  min-width: 240px;
-  height: 42px;
-  padding: 0 38px 0 14px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #ffffff;
-  color: #0f172a;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
+.stock-store-filter {
+  min-width: 250px;
+  max-width: 360px;
+}
+
+@media (max-width: 700px) {
+  .stock-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stock-store-filter {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+
+/* =========================================================
+   MULTI-LOJA — VERSÃO COMPLETA
+   ========================================================= */
+
+.stock-filter-row {
+  align-items: center;
+  gap: 12px;
+}
+
+.stock-store-filter {
+  min-width: 290px;
+  height: 44px;
+  padding: 0 42px 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
   outline: none;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease;
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
 
-.store-filter:hover {
-  border-color: #f97316;
+.stock-store-filter:hover,
+.stock-store-filter:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.10);
 }
 
-.store-filter:focus {
-  border-color: #f97316;
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
+.stock-store-filter.hidden {
+  display: none !important;
 }
 
-.store-filter:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-  background: #f8fafc;
+.store-summary {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(249, 115, 22, 0.18);
+  border-radius: var(--radius-sm);
+  background: var(--orange-light);
+  color: var(--text-light);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.operation-store-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--orange-light);
+  color: var(--text-light);
+  font-size: 12px;
+}
+
+.operation-store-context strong {
+  color: var(--orange-dark);
+}
+
+.field-help {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .user-store {
@@ -2482,22 +2530,18 @@ tbody tr:last-child td {
 }
 
 #usuarioLojaContainer.hidden {
-  display: none;
+  display: none !important;
 }
 
-@media (max-width: 700px) {
-  .stock-actions {
-    width: 100%;
-    justify-content: stretch;
+@media (max-width: 800px) {
+  .stock-filter-row {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .stock-actions .store-filter,
-  .stock-actions .secondary-btn {
+  .stock-store-filter,
+  .stock-filter-row input {
     width: 100%;
-  }
-
-  .store-filter {
     min-width: 0;
   }
 }
-
