@@ -2702,3 +2702,196 @@ tbody tr:last-child td {
     min-width: 0;
   }
 }
+/* =========================================================
+   USUÁRIOS - ADMINISTRAÇÃO
+   ========================================================= */
+
+#view-usuarios .form-panel {
+  overflow: hidden;
+}
+
+/* ---------------------------------------------------------
+   CABEÇALHO ADMINISTRATIVO
+   --------------------------------------------------------- */
+
+#view-usuarios .panel-head {
+  position: relative;
+
+  min-height: 100px;
+
+  padding-left: 28px;
+}
+
+#view-usuarios .panel-head::before {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  top: 0;
+  bottom: 0;
+
+  width: 5px;
+
+  background: var(--orange);
+}
+
+#view-usuarios .panel-head h3 {
+  color: var(--navy);
+
+  font-size: 20px;
+}
+
+#view-usuarios .panel-head p {
+  font-size: 13px;
+}
+
+/* ---------------------------------------------------------
+   FORMULÁRIO
+   --------------------------------------------------------- */
+
+#view-usuarios .form-grid {
+  background: #ffffff;
+
+  padding: 28px;
+}
+
+/* ---------------------------------------------------------
+   CAMPOS
+   --------------------------------------------------------- */
+
+#view-usuarios label {
+  margin-bottom: 8px;
+
+  color: #334155;
+
+  font-size: 13px;
+  font-weight: 750;
+}
+
+#view-usuarios input,
+#view-usuarios select {
+  min-height: 45px;
+
+  border-color: #dbe3ea;
+}
+
+#view-usuarios input:hover,
+#view-usuarios select:hover {
+  border-color: #cbd5e1;
+}
+
+#view-usuarios input:focus,
+#view-usuarios select:focus {
+  border-color: var(--orange);
+
+  box-shadow:
+    0 0 0 3px rgba(249, 115, 22, 0.10);
+}
+
+/* ---------------------------------------------------------
+   PERFIL
+   --------------------------------------------------------- */
+
+#usuarioPerfil {
+  font-weight: 700;
+
+  color: var(--navy);
+
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------
+   BOTÃO CADASTRAR
+   --------------------------------------------------------- */
+
+#view-usuarios .form-actions {
+  padding-top: 6px;
+}
+
+#view-usuarios .form-actions .primary-btn {
+  min-width: 190px;
+}
+
+/* ---------------------------------------------------------
+   MENSAGEM DE SUCESSO
+   --------------------------------------------------------- */
+
+#view-usuarios #usuarioMensagem.success {
+  display: flex;
+  align-items: center;
+
+  min-height: 44px;
+
+  padding: 10px 13px;
+
+  margin-top: 0;
+
+  background: var(--green-light);
+
+  border: 1px solid #bbf7d0;
+
+  border-radius: 9px;
+
+  color: var(--green-dark);
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------
+   MENSAGEM DE ERRO
+   --------------------------------------------------------- */
+
+#view-usuarios #usuarioMensagem.error {
+  display: flex;
+  align-items: center;
+
+  min-height: 44px;
+
+  padding: 10px 13px;
+
+  margin-top: 0;
+
+  background: var(--danger-light);
+
+  border: 1px solid #fecaca;
+
+  border-radius: 9px;
+
+  color: var(--danger);
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------
+   CAMPOS DO FORMULÁRIO
+   --------------------------------------------------------- */
+
+#view-usuarios .form-grid > div {
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------
+   RESPONSIVO
+   --------------------------------------------------------- */
+
+@media (max-width: 620px) {
+
+  #view-usuarios .panel-head {
+    min-height: auto;
+
+    padding-left: 22px;
+  }
+
+  #view-usuarios .form-grid {
+    padding: 20px;
+  }
+
+  #view-usuarios .form-actions .primary-btn {
+    width: 100%;
+
+    min-width: 0;
+  }
+}
