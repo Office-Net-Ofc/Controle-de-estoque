@@ -2364,3 +2364,72 @@ function corrigirCompatibilidadeHTML() {
 
 const inicializarCompatibilidade =
   corrigirCompatibilidadeHTML;
+(function finalizarConfiguracaoMultiLoja() {
+  const iniciar = () => {
+    try {
+      corrigirCompatibilidadeHTML();
+
+      if (
+        state.usuario &&
+        state.estoque &&
+        Array.isArray(state.estoque)
+      ) {
+        carregarLojasDoEstoque();
+        configurarLojaUsuario();
+
+        const filtro =
+          $("estoqueLojaFiltro");
+
+        if (filtro) {
+          filtro.onchange = () => {
+            selecionarLojaAdmin(
+              filtro.value
+            );
+          };
+        }
+
+        renderLojaFilter();
+        atualizarInterfaceCompleta();
+
+        console.log(
+          "OfficeNET: interface multi-loja configurada."
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Erro na configuração multi-loja:",
+        error
+      );
+    }
+  };
+
+  /*
+   * Aguarda o carregamento inicial dos dados.
+   * Assim evitamos tentar montar os filtros
+   * antes de o estoque chegar da API.
+   */
+  let tentativas = 0;
+
+  const intervalo =
+    setInterval(() => {
+      tentativas++;
+
+      if (
+        state.usuario &&
+        Array.isArray(state.estoque) &&
+        state.estoque.length >= 0
+      ) {
+        iniciar();
+        clearInterval(intervalo);
+        return;
+      }
+
+      if (tentativas >= 20) {
+        clearInterval(intervalo);
+
+        console.warn(
+          "OfficeNET: tempo limite ao aguardar os dados."
+        );
+      }
+    }, 500);
+})();
