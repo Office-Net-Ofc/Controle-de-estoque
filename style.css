@@ -931,6 +931,20 @@ tbody tr:last-child td {
   padding-top: 3px;
 }
 
+
+/* =========================================================
+   IDENTIFICAÇÃO DA LOJA / PERFIL
+   ========================================================= */
+
+.user-store {
+  color: var(--orange) !important;
+  font-weight: 800 !important;
+}
+
+#welcomeStore {
+  transition: color var(--transition);
+}
+
 /* =========================================================
    RESPONSIVIDADE - TABLET
    ========================================================= */
