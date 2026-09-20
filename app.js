@@ -155,16 +155,85 @@ function showApp() {
 }
 
 async function login(usuario, senha) {
-  const data = await apiPost({ acao: "login", usuario, senha });
+
+  const data = await apiPost({
+    acao: "login",
+    usuario,
+    senha
+  });
+
+  // PRIMEIRO ACESSO
+  if (data.primeiroAcesso === true) {
+
+    await abrirTelaPrimeiroAcesso(data);
+
+    return;
+  }
+
+  // LOGIN NORMAL
   saveSession(data);
 
-  if (state.usuario?.perfil === "PREENCHEDOR" && !state.usuario.lojaId) {
-    throw new Error("Seu usuário está sem LOJA_ID vinculado. Corrija a aba USUARIOS no Google Sheets.");
+  if (
+    state.usuario?.perfil === "PREENCHEDOR" &&
+    !state.usuario.lojaId
+  ) {
+    throw new Error(
+      "Seu usuário está sem LOJA_ID vinculado. Corrija a aba USUARIOS no Google Sheets."
+    );
   }
 
   showApp();
+
   await loadData();
+
   openView("dashboard");
+}
+
+async function abrirTelaPrimeiroAcesso(data) {
+
+  const novaSenha = prompt(
+    "PRIMEIRO ACESSO\n\n" +
+    "Olá, " + data.usuario.nome + "!\n\n" +
+    "Por segurança, você precisa criar sua senha pessoal.\n\n" +
+    "Digite sua nova senha:"
+  );
+
+  if (!novaSenha) {
+    throw new Error(
+      "É necessário criar uma nova senha."
+    );
+  }
+
+  const confirmarSenha = prompt(
+    "PRIMEIRO ACESSO\n\n" +
+    "Confirme sua nova senha:"
+  );
+
+  if (!confirmarSenha) {
+    throw new Error(
+      "É necessário confirmar sua nova senha."
+    );
+  }
+
+  const resultado = await apiPost({
+
+    acao:
+      "trocar_senha_primeiro_acesso",
+
+    tokenPrimeiroAcesso:
+      data.tokenPrimeiroAcesso,
+
+    novaSenha:
+      novaSenha,
+
+    confirmarSenha:
+      confirmarSenha
+  });
+
+  alert(
+    resultado.mensagem +
+    "\n\nAgora faça login novamente com sua nova senha."
+  );
 }
 
 async function validateSession() {
