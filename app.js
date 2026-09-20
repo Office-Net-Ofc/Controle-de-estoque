@@ -204,45 +204,59 @@ async function logout() {
 }
 
 async function loadData() {
+
   if (!state.token || !state.usuario) {
-    throw new Error("Sessão inválida. Faça login novamente.");
+    throw new Error(
+      "Sessão inválida. Faça login novamente."
+    );
   }
 
-  const lojaId = state.usuario.perfil === "ADMIN" && state.lojaFiltro !== "TODAS"
-    ? state.lojaFiltro
-    : undefined;
+  const lojaId =
+    state.usuario.perfil === "ADMIN" &&
+    state.lojaFiltro !== "TODAS"
+      ? state.lojaFiltro
+      : undefined;
 
-  const [materiaisData, estoqueData, movimentacoesData] = await Promise.all([
+  const [
+    materiaisData,
+    lojasData,
+    estoqueData,
+    movimentacoesData
+  ] = await Promise.all([
+
     apiGet("materiais"),
-    apiGet("estoque", lojaId ? { lojaId } : {}),
-    apiGet("movimentacoes", lojaId ? { lojaId } : {})
+
+    apiGet("lojas"),
+
+    apiGet(
+      "estoque",
+      lojaId
+        ? { lojaId }
+        : {}
+    ),
+
+    apiGet(
+      "movimentacoes",
+      lojaId
+        ? { lojaId }
+        : {}
+    )
+
   ]);
 
-  state.materiais = materiaisData.materiais || [];
-  state.estoque = estoqueData.estoque || [];
-  state.movimentacoes = movimentacoesData.movimentacoes || [];
+  state.materiais =
+    materiaisData.materiais || [];
 
-  montarLojas();
+  state.lojas =
+    lojasData.lojas || [];
+
+  state.estoque =
+    estoqueData.estoque || [];
+
+  state.movimentacoes =
+    movimentacoesData.movimentacoes || [];
+
   renderAll();
-}
-
-function montarLojas() {
-  const mapa = new Map();
-
-  state.estoque.forEach((item) => {
-    const id = String(item.lojaId || "").trim();
-    if (!id || mapa.has(id)) return;
-
-    mapa.set(id, {
-      id,
-      codigo: item.lojaCodigo || id,
-      nome: item.lojaNome || `Loja ${id}`
-    });
-  });
-
-  state.lojas = Array.from(mapa.values()).sort((a, b) =>
-    String(a.codigo).localeCompare(String(b.codigo), "pt-BR")
-  );
 }
 
 function getEstoqueVisivel() {
