@@ -931,6 +931,20 @@ tbody tr:last-child td {
   padding-top: 3px;
 }
 
+
+/* =========================================================
+   IDENTIFICAÇÃO DA LOJA / PERFIL
+   ========================================================= */
+
+.user-store {
+  color: var(--orange) !important;
+  font-weight: 800 !important;
+}
+
+#welcomeStore {
+  transition: color var(--transition);
+}
+
 /* =========================================================
    RESPONSIVIDADE - TABLET
    ========================================================= */
@@ -2414,6 +2428,120 @@ tbody tr:last-child td {
   #view-usuarios .form-actions .primary-btn {
     width: 100%;
 
+    min-width: 0;
+  }
+}
+
+/* =========================================================
+   FILTRO DE ESTOQUE POR LOJA
+   ========================================================= */
+
+.stock-filter-row {
+  align-items: center;
+}
+
+.stock-store-filter {
+  min-width: 250px;
+  max-width: 360px;
+}
+
+@media (max-width: 700px) {
+  .stock-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stock-store-filter {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+
+/* =========================================================
+   MULTI-LOJA — VERSÃO COMPLETA
+   ========================================================= */
+
+.stock-filter-row {
+  align-items: center;
+  gap: 12px;
+}
+
+.stock-store-filter {
+  min-width: 290px;
+  height: 44px;
+  padding: 0 42px 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.stock-store-filter:hover,
+.stock-store-filter:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.10);
+}
+
+.stock-store-filter.hidden {
+  display: none !important;
+}
+
+.store-summary {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(249, 115, 22, 0.18);
+  border-radius: var(--radius-sm);
+  background: var(--orange-light);
+  color: var(--text-light);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.operation-store-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--orange-light);
+  color: var(--text-light);
+  font-size: 12px;
+}
+
+.operation-store-context strong {
+  color: var(--orange-dark);
+}
+
+.field-help {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.user-store {
+  color: var(--orange) !important;
+  font-weight: 800 !important;
+}
+
+#usuarioLojaContainer.hidden {
+  display: none !important;
+}
+
+@media (max-width: 800px) {
+  .stock-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stock-store-filter,
+  .stock-filter-row input {
+    width: 100%;
     min-width: 0;
   }
 }
