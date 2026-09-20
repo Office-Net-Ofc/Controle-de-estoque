@@ -36,6 +36,83 @@
     </div>
   </section>
 
+  <!-- PRIMEIRO ACESSO -->
+  <section id="primeiroAcessoView" class="login-page hidden">
+
+    <div class="login-card">
+
+      <div class="brand">
+        <img
+          src="Office Net - Perfil.png"
+          alt="Office Net Telecom"
+          class="logo-login"
+        >
+
+        <div>
+          <h1>OfficeNET</h1>
+          <p>Primeiro acesso</p>
+        </div>
+      </div>
+
+      <div class="first-access-content">
+
+        <h2>Crie sua senha pessoal</h2>
+
+        <p>
+          Olá, <strong id="primeiroAcessoNome">usuário</strong>!
+        </p>
+
+        <p class="first-access-description">
+          Esta é sua primeira entrada no sistema.
+          Por segurança, defina agora uma senha pessoal.
+        </p>
+
+        <form id="primeiroAcessoForm">
+
+          <label for="primeiroAcessoNovaSenha">
+            Nova senha
+          </label>
+
+          <input
+            id="primeiroAcessoNovaSenha"
+            type="password"
+            autocomplete="new-password"
+            minlength="6"
+            required
+          >
+
+          <label for="primeiroAcessoConfirmarSenha">
+            Confirmar nova senha
+          </label>
+
+          <input
+            id="primeiroAcessoConfirmarSenha"
+            type="password"
+            autocomplete="new-password"
+            minlength="6"
+            required
+          >
+
+          <button
+            class="primary-btn"
+            type="submit"
+          >
+            Criar minha senha
+          </button>
+
+          <p
+            id="primeiroAcessoMensagem"
+            class="form-message"
+          ></p>
+
+        </form>
+
+      </div>
+
+    </div>
+
+  </section>
+  
   <!-- SISTEMA -->
   <section id="appView" class="app hidden">
     <aside class="sidebar">
