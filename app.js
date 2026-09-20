@@ -7,7 +7,8 @@ const state = {
   estoque: [],
   movimentacoes: [],
   lojas: [],
-  lojaFiltro: "TODAS"
+  lojaFiltro: "TODAS",
+  tokenPrimeiroAcesso: ""
 };
 
 const $ = (id) => document.getElementById(id);
@@ -189,51 +190,48 @@ async function login(usuario, senha) {
   openView("dashboard");
 }
 
-async function abrirTelaPrimeiroAcesso(data) {
+function abrirTelaPrimeiroAcesso(data) {
 
-  const novaSenha = prompt(
-    "PRIMEIRO ACESSO\n\n" +
-    "Olá, " + data.usuario.nome + "!\n\n" +
-    "Por segurança, você precisa criar sua senha pessoal.\n\n" +
-    "Digite sua nova senha:"
-  );
+  const loginView = $("loginView");
+  const primeiroAcessoView = $("primeiroAcessoView");
 
-  if (!novaSenha) {
+  if (!loginView || !primeiroAcessoView) {
     throw new Error(
-      "É necessário criar uma nova senha."
+      "Tela de primeiro acesso não encontrada."
     );
   }
 
-  const confirmarSenha = prompt(
-    "PRIMEIRO ACESSO\n\n" +
-    "Confirme sua nova senha:"
+  // Guarda temporariamente o token de primeiro acesso.
+  state.tokenPrimeiroAcesso =
+    data.tokenPrimeiroAcesso;
+
+  // Mostra o nome do usuário.
+  const nome =
+    data.usuario?.nome ||
+    "usuário";
+
+  $("primeiroAcessoNome").textContent =
+    nome;
+
+  // Limpa os campos.
+  $("primeiroAcessoForm")?.reset();
+
+  // Limpa mensagens anteriores.
+  showMessage(
+    $("primeiroAcessoMensagem"),
+    ""
   );
 
-  if (!confirmarSenha) {
-    throw new Error(
-      "É necessário confirmar sua nova senha."
-    );
-  }
+  // Esconde o login.
+  loginView.classList.add("hidden");
 
-  const resultado = await apiPost({
+  // Mostra a tela de primeiro acesso.
+  primeiroAcessoView.classList.remove("hidden");
 
-    acao:
-      "trocar_senha_primeiro_acesso",
-
-    tokenPrimeiroAcesso:
-      data.tokenPrimeiroAcesso,
-
-    novaSenha:
-      novaSenha,
-
-    confirmarSenha:
-      confirmarSenha
-  });
-
-  alert(
-    resultado.mensagem +
-    "\n\nAgora faça login novamente com sua nova senha."
-  );
+  // Coloca o cursor na senha.
+  setTimeout(() => {
+    $("primeiroAcessoNovaSenha")?.focus();
+  }, 100);
 }
 
 async function validateSession() {
@@ -840,3 +838,100 @@ async function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+$("primeiroAcessoForm")?.addEventListener(
+  "submit",
+  async (event) => {
+
+    event.preventDefault();
+
+    const message =
+      $("primeiroAcessoMensagem");
+
+    const novaSenha =
+      $("primeiroAcessoNovaSenha").value;
+
+    const confirmarSenha =
+      $("primeiroAcessoConfirmarSenha").value;
+
+    try {
+
+      if (!state.tokenPrimeiroAcesso) {
+        throw new Error(
+          "Sessão de primeiro acesso inválida. Faça login novamente."
+        );
+      }
+
+      if (novaSenha.length < 6) {
+        throw new Error(
+          "A senha deve possuir pelo menos 6 caracteres."
+        );
+      }
+
+      if (novaSenha !== confirmarSenha) {
+        throw new Error(
+          "As senhas não conferem."
+        );
+      }
+
+      showMessage(
+        message,
+        "Salvando sua nova senha..."
+      );
+
+      const resultado = await apiPost({
+
+        acao:
+          "trocar_senha_primeiro_acesso",
+
+        tokenPrimeiroAcesso:
+          state.tokenPrimeiroAcesso,
+
+        novaSenha:
+          novaSenha,
+
+        confirmarSenha:
+          confirmarSenha
+      });
+
+      showMessage(
+        message,
+        resultado.mensagem ||
+        "Senha criada com sucesso!",
+        "success"
+      );
+
+      // O token temporário deixa de ser utilizado.
+      state.tokenPrimeiroAcesso = "";
+
+      // Aguarda um instante para o usuário
+      // visualizar a mensagem.
+      setTimeout(() => {
+
+        $("primeiroAcessoView")
+          ?.classList.add("hidden");
+
+        $("loginView")
+          ?.classList.remove("hidden");
+
+        $("loginForm")
+          ?.reset();
+
+        showMessage(
+          $("loginMensagem"),
+          "Senha criada com sucesso. Agora faça login com sua nova senha.",
+          "success"
+        );
+
+      }, 1200);
+
+    } catch (error) {
+
+      showMessage(
+        message,
+        error.message ||
+        "Não foi possível alterar a senha.",
+        "error"
+      );
+    }
+  }
+);
