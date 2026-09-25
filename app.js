@@ -377,6 +377,22 @@ function getMaterialUnit(material) {
   return materialField(material, ["UNIDADE", "Unidade", "unidade"]);
 }
 
+function getMaterialMinimum(material) {
+  const value = materialField(material, [
+    "ESTOQUE_MINIMO",
+    "estoqueMinimo",
+    "ESTOQUE MINIMO",
+    "ESTOQUE MÍNIMO",
+    "ESTOQUE_MIN",
+    "MINIMO",
+    "MÍNIMO",
+    "minimo"
+  ]);
+
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
 function formatNumber(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return "0";
@@ -740,12 +756,7 @@ function renderProdutos() {
         const nome = getMaterialName(produto);
         const categoria = getMaterialCategory(produto);
         const unidade = getMaterialUnit(produto);
-        const minimo = Number(
-          produto.ESTOQUE_MINIMO ??
-          produto.estoqueMinimo ??
-          produto.ESTOQUE_MIN ??
-          0
-        );
+        const minimo = getMaterialMinimum(produto);
 
         return `<tr>
           <td><strong>${escapeHtml(codigo || "—")}</strong></td>
@@ -800,10 +811,7 @@ function preencherFormularioProduto(id) {
   $("produtoNome").value = getMaterialName(produto);
   $("produtoCategoria").value = getMaterialCategory(produto);
   $("produtoUnidade").value = getMaterialUnit(produto);
-  $("produtoEstoqueMinimo").value =
-    produto.ESTOQUE_MINIMO ??
-    produto.estoqueMinimo ??
-    0;
+  $("produtoEstoqueMinimo").value = getMaterialMinimum(produto);
 
   $("produtoSubmitBtn").textContent = "Salvar alterações";
   $("produtoCancelarBtn")?.classList.remove("hidden");
@@ -873,6 +881,24 @@ async function salvarProduto(event) {
       "success"
     );
 
+    // Reflete imediatamente o valor retornado pelo backend.
+    if (id && resultado.material) {
+      const indice = state.materiais.findIndex((item) => {
+        const itemId = item.ID ?? item.id ?? item.Id;
+        return String(itemId ?? "").trim() === String(id).trim();
+      });
+
+      if (indice >= 0) {
+        state.materiais[indice] = {
+          ...state.materiais[indice],
+          ...resultado.material,
+          ESTOQUE_MINIMO: Number(resultado.material.ESTOQUE_MINIMO) || 0,
+          estoqueMinimo: Number(resultado.material.ESTOQUE_MINIMO) || 0
+        };
+      }
+    }
+
+    renderProdutos();
     limparFormularioProduto();
     await loadData();
     openView("produtos");
