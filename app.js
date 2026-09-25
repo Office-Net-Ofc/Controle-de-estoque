@@ -377,6 +377,24 @@ function getMaterialUnit(material) {
   return materialField(material, ["UNIDADE", "Unidade", "unidade"]);
 }
 
+function getEstoqueMinimo(item) {
+  const material = findMaterialById(item?.materialId ?? item?.MATERIAL_ID);
+  const minimoMaterial = materialField(material, [
+    "ESTOQUE_MINIMO",
+    "Estoque Minimo",
+    "Estoque Mínimo",
+    "estoqueMinimo"
+  ]);
+
+  const numeroMaterial = Number(minimoMaterial);
+  if (Number.isFinite(numeroMaterial)) return numeroMaterial;
+
+  const numeroEstoque = Number(
+    item?.estoqueMinimo ?? item?.ESTOQUE_MINIMO ?? 0
+  );
+  return Number.isFinite(numeroEstoque) ? numeroEstoque : 0;
+}
+
 function formatNumber(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return "0";
@@ -475,11 +493,7 @@ function renderMaterials() {
         const categoria = item.categoria || getMaterialCategory(material) || "—";
         const unidade = item.unidade || getMaterialUnit(material) || "—";
         const quantidade = Number(item.quantidade || 0);
-        const minimo = Number(
-          item.estoqueMinimo ??
-          item.ESTOQUE_MINIMO ??
-          0
-        );
+        const minimo = getEstoqueMinimo(item);
         const status = item.status || (quantidade <= minimo ? "ESTOQUE BAIXO" : "NORMAL");
 
         return `<tr>
