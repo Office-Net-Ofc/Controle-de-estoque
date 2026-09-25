@@ -414,7 +414,11 @@ function renderStats() {
   const estoque = getEstoqueVisivel();
   const baixos = estoque.filter((item) => {
     const qtd = Number(item.quantidade || 0);
-    const minimo = Number(item.estoqueMinimo || 0);
+    const minimo = Number(
+          item.estoqueMinimo ??
+          item.ESTOQUE_MINIMO ??
+          0
+        );
     const status = String(item.status || "").toUpperCase();
     return status.includes("BAIXO") || status.includes("CRÍTICO") || qtd <= minimo;
   });
@@ -471,7 +475,11 @@ function renderMaterials() {
         const categoria = item.categoria || getMaterialCategory(material) || "—";
         const unidade = item.unidade || getMaterialUnit(material) || "—";
         const quantidade = Number(item.quantidade || 0);
-        const minimo = Number(item.estoqueMinimo || 0);
+        const minimo = Number(
+          item.estoqueMinimo ??
+          item.ESTOQUE_MINIMO ??
+          0
+        );
         const status = item.status || (quantidade <= minimo ? "ESTOQUE BAIXO" : "NORMAL");
 
         return `<tr>
@@ -735,6 +743,7 @@ function renderProdutos() {
         const minimo = Number(
           produto.ESTOQUE_MINIMO ??
           produto.estoqueMinimo ??
+          produto.ESTOQUE_MIN ??
           0
         );
 
