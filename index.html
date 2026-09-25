@@ -189,6 +189,18 @@
     <span>Histórico</span>
   </button>
 
+  <button id="menuProdutos" class="nav-btn admin-only" data-view="produtos">
+    <span class="nav-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 7h16"></path>
+        <path d="M6 7l1-3h10l1 3"></path>
+        <path d="M6 7v13h12V7"></path>
+        <path d="M9 11h6"></path>
+      </svg>
+    </span>
+    <span>Produtos</span>
+  </button>
+
   <button id="menuUsuarios" class="nav-btn admin-only" data-view="usuarios">
     <span class="nav-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -486,6 +498,88 @@
                 </tr>
               </thead>
               <tbody id="movimentacoesTable"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- PRODUTOS -->
+      <section id="view-produtos" class="page-view hidden">
+        <article class="panel form-panel">
+          <div class="panel-head">
+            <div>
+              <h3>Gerenciar produtos</h3>
+              <p>Cadastre, edite e exclua produtos do catálogo. Disponível somente para administradores.</p>
+            </div>
+          </div>
+
+          <form id="produtoForm" class="form-grid">
+            <input id="produtoId" type="hidden">
+
+            <div>
+              <label for="produtoCodigo">Código</label>
+              <input id="produtoCodigo" required maxlength="50" placeholder="Ex.: ONU001">
+            </div>
+
+            <div>
+              <label for="produtoNome">Produto</label>
+              <input id="produtoNome" required maxlength="120" placeholder="Ex.: ONU XPON">
+            </div>
+
+            <div>
+              <label for="produtoCategoria">Categoria</label>
+              <input id="produtoCategoria" required maxlength="80" placeholder="Ex.: Equipamentos">
+            </div>
+
+            <div>
+              <label for="produtoUnidade">Unidade</label>
+              <input id="produtoUnidade" required maxlength="20" placeholder="Ex.: UN">
+            </div>
+
+            <div>
+              <label for="produtoEstoqueMinimo">Estoque mínimo</label>
+              <input id="produtoEstoqueMinimo" type="number" min="0" step="any" value="0" required>
+            </div>
+
+            <div class="full product-form-note">
+              <strong>Importante:</strong> o estoque é controlado separadamente por loja. Um produto novo será criado com quantidade zero em todas as lojas ativas. Use <strong>Entrada</strong> para adicionar estoque.
+            </div>
+
+            <div class="full form-actions">
+              <button id="produtoSubmitBtn" class="primary-btn" type="submit">Cadastrar produto</button>
+              <button id="produtoCancelarBtn" class="secondary-btn hidden" type="button">Cancelar edição</button>
+            </div>
+
+            <p id="produtoMensagem" class="form-message full"></p>
+          </form>
+        </article>
+
+        <article class="panel product-list-panel">
+          <div class="panel-head">
+            <div>
+              <h3>Produtos cadastrados</h3>
+              <p>Catálogo central de materiais utilizados no estoque.</p>
+            </div>
+            <button class="secondary-btn" id="refreshProdutosBtn" type="button">Atualizar</button>
+          </div>
+
+          <div class="search-row">
+            <input id="produtoBusca" type="search" placeholder="Pesquisar por código, produto ou categoria...">
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Produto</th>
+                  <th>Categoria</th>
+                  <th>Unidade</th>
+                  <th>Mínimo</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="produtosTable"></tbody>
             </table>
           </div>
         </article>
