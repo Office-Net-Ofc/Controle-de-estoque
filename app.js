@@ -377,22 +377,6 @@ function getMaterialUnit(material) {
   return materialField(material, ["UNIDADE", "Unidade", "unidade"]);
 }
 
-function getMaterialMinimum(material) {
-  const value = materialField(material, [
-    "ESTOQUE_MINIMO",
-    "estoqueMinimo",
-    "ESTOQUE MINIMO",
-    "ESTOQUE MÍNIMO",
-    "ESTOQUE_MIN",
-    "MINIMO",
-    "MÍNIMO",
-    "minimo"
-  ]);
-
-  const number = Number(value);
-  return Number.isFinite(number) ? number : 0;
-}
-
 function formatNumber(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return "0";
@@ -419,9 +403,8 @@ function renderAll() {
   renderMaterials();
   renderMovementTables();
   renderProdutos();
-  populateLojaFiltro();
-  carregarLojasOperacao();
   populateMaterialSelects();
+  populateLojaFiltro();
   carregarLojasNoCadastro();
   atualizarVisibilidadeMultiLoja();
   atualizarContextos();
@@ -492,17 +475,12 @@ function renderMaterials() {
         const categoria = item.categoria || getMaterialCategory(material) || "—";
         const unidade = item.unidade || getMaterialUnit(material) || "—";
         const quantidade = Number(item.quantidade || 0);
-
-        // O estoque mínimo oficial vem do cadastro do produto (MATERIAIS).
-        // Isso evita que um valor antigo/zerado da aba ESTOQUE apareça na tela.
-        const minimo = material
-          ? Number(material.ESTOQUE_MINIMO ?? material.estoqueMinimo ?? 0)
-          : Number(item.estoqueMinimo ?? item.ESTOQUE_MINIMO ?? 0);
-
-        // O status é calculado com base no estoque atual e no mínimo oficial.
-        const status = minimo > 0 && quantidade <= minimo
-          ? "ESTOQUE BAIXO"
-          : "NORMAL";
+        const minimo = Number(
+          item.estoqueMinimo ??
+          item.ESTOQUE_MINIMO ??
+          0
+        );
+        const status = item.status || (quantidade <= minimo ? "ESTOQUE BAIXO" : "NORMAL");
 
         return `<tr>
           <td><strong>${escapeHtml(codigo)}</strong></td>
@@ -619,13 +597,7 @@ function atualizarContextos() {
   ["entradaLojaContext", "saidaLojaContext"].forEach((id) => {
     const element = $(id);
     if (!element) return;
-    const prefixo = id.startsWith("entrada") ? "entrada" : "saida";
-    const lojaId = getOperacaoLojaId(prefixo);
-    const loja = state.lojas.find((item) => String(item.id) === String(lojaId));
-    const labelOperacao = state.usuario?.perfil === "ADMIN"
-      ? (loja ? `${loja.codigo} — ${loja.nome}` : "selecione uma loja")
-      : getLojaLabel();
-    element.innerHTML = `Loja da operação: <strong>${escapeHtml(labelOperacao)}</strong>`;
+    element.innerHTML = `Loja da operação: <strong>${escapeHtml(getLojaLabel())}</strong>`;
   });
 
   const resumo = $("estoqueResumoLoja");
@@ -636,51 +608,16 @@ function atualizarContextos() {
   }
 }
 
-function getOperacaoLojaId(prefixo = "entrada") {
+function getOperacaoLojaId() {
   if (state.usuario?.perfil === "PREENCHEDOR") {
     return String(state.usuario.lojaId || "").trim();
   }
 
-  if (state.usuario?.perfil === "ADMIN") {
-    const select = $(prefixo + "Loja");
-    if (select && String(select.value || "").trim()) {
-      return String(select.value).trim();
-    }
-
-    if (state.lojaFiltro !== "TODAS") {
-      return String(state.lojaFiltro).trim();
-    }
+  if (state.usuario?.perfil === "ADMIN" && state.lojaFiltro !== "TODAS") {
+    return String(state.lojaFiltro).trim();
   }
 
   return "";
-}
-
-function carregarLojasOperacao() {
-  ["entradaLoja", "saidaLoja"].forEach((id) => {
-    const select = $(id);
-    const prefixo = id.startsWith("entrada") ? "entrada" : "saida";
-    const container = $(prefixo + "LojaContainer");
-    if (!select) return;
-
-    if (state.usuario?.perfil !== "ADMIN") {
-      if (container) container.classList.add("hidden");
-      select.required = false;
-      return;
-    }
-
-    if (container) container.classList.remove("hidden");
-    select.required = true;
-
-    const atual = select.value || (state.lojaFiltro !== "TODAS" ? state.lojaFiltro : "");
-    select.innerHTML = `<option value="">Selecione a loja...</option>` +
-      state.lojas.map((loja) =>
-        `<option value="${escapeHtml(loja.id)}">${escapeHtml(loja.codigo)} — ${escapeHtml(loja.nome)}</option>`
-      ).join("");
-
-    if (state.lojas.some((loja) => String(loja.id) === String(atual))) {
-      select.value = atual;
-    }
-  });
 }
 
 function getEstoqueItem(materialId, lojaId) {
@@ -698,8 +635,6 @@ function populateMaterialSelects() {
     const atual = select.value;
     select.innerHTML = `<option value="">Selecione o material...</option>`;
 
-    const prefixo = id.startsWith("entrada") ? "entrada" : "saida";
-
     state.materiais.forEach((material) => {
       const materialId = material.ID ?? material.id ?? material.Id;
       const codigo = getMaterialCode(material);
@@ -707,7 +642,7 @@ function populateMaterialSelects() {
       const unidade = getMaterialUnit(material);
       if (materialId === undefined || !codigo) return;
 
-      const lojaId = getOperacaoLojaId(prefixo);
+      const lojaId = getOperacaoLojaId();
       let estoque = "";
       if (lojaId) {
         const item = getEstoqueItem(materialId, lojaId);
@@ -805,7 +740,12 @@ function renderProdutos() {
         const nome = getMaterialName(produto);
         const categoria = getMaterialCategory(produto);
         const unidade = getMaterialUnit(produto);
-        const minimo = getMaterialMinimum(produto);
+        const minimo = Number(
+          produto.ESTOQUE_MINIMO ??
+          produto.estoqueMinimo ??
+          produto.ESTOQUE_MIN ??
+          0
+        );
 
         return `<tr>
           <td><strong>${escapeHtml(codigo || "—")}</strong></td>
@@ -860,7 +800,10 @@ function preencherFormularioProduto(id) {
   $("produtoNome").value = getMaterialName(produto);
   $("produtoCategoria").value = getMaterialCategory(produto);
   $("produtoUnidade").value = getMaterialUnit(produto);
-  $("produtoEstoqueMinimo").value = getMaterialMinimum(produto);
+  $("produtoEstoqueMinimo").value =
+    produto.ESTOQUE_MINIMO ??
+    produto.estoqueMinimo ??
+    0;
 
   $("produtoSubmitBtn").textContent = "Salvar alterações";
   $("produtoCancelarBtn")?.classList.remove("hidden");
@@ -930,24 +873,6 @@ async function salvarProduto(event) {
       "success"
     );
 
-    // Reflete imediatamente o valor retornado pelo backend.
-    if (id && resultado.material) {
-      const indice = state.materiais.findIndex((item) => {
-        const itemId = item.ID ?? item.id ?? item.Id;
-        return String(itemId ?? "").trim() === String(id).trim();
-      });
-
-      if (indice >= 0) {
-        state.materiais[indice] = {
-          ...state.materiais[indice],
-          ...resultado.material,
-          ESTOQUE_MINIMO: Number(resultado.material.ESTOQUE_MINIMO) || 0,
-          estoqueMinimo: Number(resultado.material.ESTOQUE_MINIMO) || 0
-        };
-      }
-    }
-
-    renderProdutos();
     limparFormularioProduto();
     await loadData();
     openView("produtos");
@@ -1015,7 +940,7 @@ async function registrarMovimentacao(tipo, event) {
   try {
     const codigo = $(prefixo + "Codigo").value;
     const quantidade = Number($(prefixo + "Quantidade").value);
-    const lojaId = getOperacaoLojaId(prefixo);
+    const lojaId = getOperacaoLojaId();
 
     if (!codigo) throw new Error("Selecione o material.");
     if (!Number.isFinite(quantidade) || quantidade <= 0) throw new Error("Informe uma quantidade válida.");
@@ -1161,13 +1086,6 @@ function setupEvents() {
   });
 
   $("usuarioPerfil")?.addEventListener("change", atualizarVisibilidadeMultiLoja);
-
-  ["entradaLoja", "saidaLoja"].forEach((id) => {
-    $(id)?.addEventListener("change", () => {
-      atualizarContextos();
-      populateMaterialSelects();
-    });
-  });
 }
 
 async function init() {
