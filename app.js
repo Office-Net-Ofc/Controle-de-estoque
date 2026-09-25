@@ -419,8 +419,9 @@ function renderAll() {
   renderMaterials();
   renderMovementTables();
   renderProdutos();
-  populateMaterialSelects();
   populateLojaFiltro();
+  carregarLojasOperacao();
+  populateMaterialSelects();
   carregarLojasNoCadastro();
   atualizarVisibilidadeMultiLoja();
   atualizarContextos();
@@ -618,7 +619,13 @@ function atualizarContextos() {
   ["entradaLojaContext", "saidaLojaContext"].forEach((id) => {
     const element = $(id);
     if (!element) return;
-    element.innerHTML = `Loja da operação: <strong>${escapeHtml(getLojaLabel())}</strong>`;
+    const prefixo = id.startsWith("entrada") ? "entrada" : "saida";
+    const lojaId = getOperacaoLojaId(prefixo);
+    const loja = state.lojas.find((item) => String(item.id) === String(lojaId));
+    const labelOperacao = state.usuario?.perfil === "ADMIN"
+      ? (loja ? `${loja.codigo} — ${loja.nome}` : "selecione uma loja")
+      : getLojaLabel();
+    element.innerHTML = `Loja da operação: <strong>${escapeHtml(labelOperacao)}</strong>`;
   });
 
   const resumo = $("estoqueResumoLoja");
@@ -629,16 +636,51 @@ function atualizarContextos() {
   }
 }
 
-function getOperacaoLojaId() {
+function getOperacaoLojaId(prefixo = "entrada") {
   if (state.usuario?.perfil === "PREENCHEDOR") {
     return String(state.usuario.lojaId || "").trim();
   }
 
-  if (state.usuario?.perfil === "ADMIN" && state.lojaFiltro !== "TODAS") {
-    return String(state.lojaFiltro).trim();
+  if (state.usuario?.perfil === "ADMIN") {
+    const select = $(prefixo + "Loja");
+    if (select && String(select.value || "").trim()) {
+      return String(select.value).trim();
+    }
+
+    if (state.lojaFiltro !== "TODAS") {
+      return String(state.lojaFiltro).trim();
+    }
   }
 
   return "";
+}
+
+function carregarLojasOperacao() {
+  ["entradaLoja", "saidaLoja"].forEach((id) => {
+    const select = $(id);
+    const prefixo = id.startsWith("entrada") ? "entrada" : "saida";
+    const container = $(prefixo + "LojaContainer");
+    if (!select) return;
+
+    if (state.usuario?.perfil !== "ADMIN") {
+      if (container) container.classList.add("hidden");
+      select.required = false;
+      return;
+    }
+
+    if (container) container.classList.remove("hidden");
+    select.required = true;
+
+    const atual = select.value || (state.lojaFiltro !== "TODAS" ? state.lojaFiltro : "");
+    select.innerHTML = `<option value="">Selecione a loja...</option>` +
+      state.lojas.map((loja) =>
+        `<option value="${escapeHtml(loja.id)}">${escapeHtml(loja.codigo)} — ${escapeHtml(loja.nome)}</option>`
+      ).join("");
+
+    if (state.lojas.some((loja) => String(loja.id) === String(atual))) {
+      select.value = atual;
+    }
+  });
 }
 
 function getEstoqueItem(materialId, lojaId) {
@@ -663,7 +705,7 @@ function populateMaterialSelects() {
       const unidade = getMaterialUnit(material);
       if (materialId === undefined || !codigo) return;
 
-      const lojaId = getOperacaoLojaId();
+      const lojaId = getOperacaoLojaId(prefixo);
       let estoque = "";
       if (lojaId) {
         const item = getEstoqueItem(materialId, lojaId);
@@ -971,7 +1013,7 @@ async function registrarMovimentacao(tipo, event) {
   try {
     const codigo = $(prefixo + "Codigo").value;
     const quantidade = Number($(prefixo + "Quantidade").value);
-    const lojaId = getOperacaoLojaId();
+    const lojaId = getOperacaoLojaId(prefixo);
 
     if (!codigo) throw new Error("Selecione o material.");
     if (!Number.isFinite(quantidade) || quantidade <= 0) throw new Error("Informe uma quantidade válida.");
@@ -1117,6 +1159,13 @@ function setupEvents() {
   });
 
   $("usuarioPerfil")?.addEventListener("change", atualizarVisibilidadeMultiLoja);
+
+  ["entradaLoja", "saidaLoja"].forEach((id) => {
+    $(id)?.addEventListener("change", () => {
+      atualizarContextos();
+      populateMaterialSelects();
+    });
+  });
 }
 
 async function init() {
