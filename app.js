@@ -402,6 +402,7 @@ function renderAll() {
   renderStats();
   renderMaterials();
   renderMovementTables();
+  renderProdutos();
   populateMaterialSelects();
   populateLojaFiltro();
   carregarLojasNoCadastro();
@@ -654,7 +655,7 @@ function populateMaterialSelects() {
 }
 
 function openView(viewName) {
-  const allowed = ["dashboard", "estoque", "entrada", "saida", "movimentacoes", "usuarios"];
+  const allowed = ["dashboard", "estoque", "entrada", "saida", "movimentacoes", "produtos", "usuarios"];
   if (!allowed.includes(viewName)) return;
 
   if (viewName === "usuarios" && state.usuario?.perfil !== "ADMIN") {
@@ -676,6 +677,7 @@ function openView(viewName) {
     entrada: ["Entrada", "Registrar entrada de material"],
     saida: ["Saída", "Registrar saída de material"],
     movimentacoes: ["Histórico", "Auditoria das movimentações"],
+    produtos: ["Produtos", "Gerenciamento do catálogo"],
     usuarios: ["Usuários", "Gerenciamento de acessos"]
   };
 
@@ -684,11 +686,240 @@ function openView(viewName) {
 
   if (viewName === "estoque") renderMaterials();
   if (viewName === "movimentacoes") renderMovementTables();
+  if (viewName === "produtos") renderProdutos();
   if (viewName === "usuarios") {
     carregarLojasNoCadastro();
     atualizarVisibilidadeMultiLoja();
   }
   atualizarContextos();
+}
+
+
+function renderProdutos() {
+  const tabela = $("produtosTable");
+  if (!tabela) return;
+
+  if (state.usuario?.perfil !== "ADMIN") {
+    tabela.innerHTML = `<tr><td colspan="6">Acesso permitido somente ao ADMIN.</td></tr>`;
+    return;
+  }
+
+  const busca = String($("produtoBusca")?.value || "").trim().toLowerCase();
+
+  const produtos = [...state.materiais]
+    .filter((produto) => {
+      const texto = [
+        getMaterialCode(produto),
+        getMaterialName(produto),
+        getMaterialCategory(produto),
+        getMaterialUnit(produto)
+      ].join(" ").toLowerCase();
+
+      return texto.includes(busca);
+    })
+    .sort((a, b) =>
+      String(getMaterialCode(a)).localeCompare(
+        String(getMaterialCode(b)),
+        "pt-BR",
+        { numeric: true, sensitivity: "base" }
+      )
+    );
+
+  tabela.innerHTML = produtos.length
+    ? produtos.map((produto) => {
+        const id = produto.ID ?? produto.id ?? produto.Id;
+        const codigo = getMaterialCode(produto);
+        const nome = getMaterialName(produto);
+        const categoria = getMaterialCategory(produto);
+        const unidade = getMaterialUnit(produto);
+        const minimo = Number(
+          produto.ESTOQUE_MINIMO ??
+          produto.estoqueMinimo ??
+          0
+        );
+
+        return `<tr>
+          <td><strong>${escapeHtml(codigo || "—")}</strong></td>
+          <td>${escapeHtml(nome || "—")}</td>
+          <td>${escapeHtml(categoria || "—")}</td>
+          <td>${escapeHtml(unidade || "—")}</td>
+          <td>${escapeHtml(formatNumber(minimo))}</td>
+          <td>
+            <div class="product-actions">
+              <button
+                class="secondary-btn product-action-btn"
+                type="button"
+                data-product-edit="${escapeHtml(id)}"
+              >Editar</button>
+              <button
+                class="danger-btn product-action-btn"
+                type="button"
+                data-product-delete="${escapeHtml(id)}"
+              >Excluir</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join("")
+    : `<tr><td colspan="6">Nenhum produto encontrado.</td></tr>`;
+}
+
+function limparFormularioProduto() {
+  $("produtoForm")?.reset();
+
+  if ($("produtoId")) $("produtoId").value = "";
+  if ($("produtoEstoqueMinimo")) $("produtoEstoqueMinimo").value = "0";
+
+  if ($("produtoSubmitBtn")) {
+    $("produtoSubmitBtn").textContent = "Cadastrar produto";
+  }
+
+  $("produtoCancelarBtn")?.classList.add("hidden");
+
+  showMessage($("produtoMensagem"), "");
+}
+
+function preencherFormularioProduto(id) {
+  const produto = findMaterialById(id);
+
+  if (!produto) {
+    showGlobalMessage("Produto não encontrado.", "error");
+    return;
+  }
+
+  $("produtoId").value = produto.ID ?? produto.id ?? produto.Id ?? "";
+  $("produtoCodigo").value = getMaterialCode(produto);
+  $("produtoNome").value = getMaterialName(produto);
+  $("produtoCategoria").value = getMaterialCategory(produto);
+  $("produtoUnidade").value = getMaterialUnit(produto);
+  $("produtoEstoqueMinimo").value =
+    produto.ESTOQUE_MINIMO ??
+    produto.estoqueMinimo ??
+    0;
+
+  $("produtoSubmitBtn").textContent = "Salvar alterações";
+  $("produtoCancelarBtn")?.classList.remove("hidden");
+
+  showMessage(
+    $("produtoMensagem"),
+    "Editando produto. Faça as alterações e salve."
+  );
+
+  $("produtoCodigo")?.focus();
+  $("view-produtos")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function salvarProduto(event) {
+  event.preventDefault();
+
+  if (state.usuario?.perfil !== "ADMIN") {
+    showMessage(
+      $("produtoMensagem"),
+      "Somente ADMIN pode cadastrar ou editar produtos.",
+      "error"
+    );
+    return;
+  }
+
+  const id = String($("produtoId")?.value || "").trim();
+
+  try {
+    const codigo = String($("produtoCodigo")?.value || "").trim();
+    const material = String($("produtoNome")?.value || "").trim();
+    const categoria = String($("produtoCategoria")?.value || "").trim();
+    const unidade = String($("produtoUnidade")?.value || "").trim();
+    const estoqueMinimo = Number($("produtoEstoqueMinimo")?.value);
+
+    if (!codigo || !material || !categoria || !unidade) {
+      throw new Error("Preencha todos os campos obrigatórios.");
+    }
+
+    if (!Number.isFinite(estoqueMinimo) || estoqueMinimo < 0) {
+      throw new Error("Informe um estoque mínimo válido.");
+    }
+
+    const payload = {
+      token: state.token,
+      codigo,
+      material,
+      categoria,
+      unidade,
+      estoqueMinimo
+    };
+
+    if (id) {
+      payload.acao = "editar_material";
+      payload.id = id;
+    } else {
+      payload.acao = "cadastrar_material";
+    }
+
+    const resultado = await apiPost(payload);
+
+    showMessage(
+      $("produtoMensagem"),
+      resultado.mensagem ||
+        (id
+          ? "Produto atualizado com sucesso!"
+          : "Produto cadastrado com sucesso!"),
+      "success"
+    );
+
+    limparFormularioProduto();
+    await loadData();
+    openView("produtos");
+  } catch (error) {
+    showMessage(
+      $("produtoMensagem"),
+      error.message || "Não foi possível salvar o produto.",
+      "error"
+    );
+  }
+}
+
+async function excluirProduto(id) {
+  if (state.usuario?.perfil !== "ADMIN") {
+    showGlobalMessage("Somente ADMIN pode excluir produtos.", "error");
+    return;
+  }
+
+  const produto = findMaterialById(id);
+
+  if (!produto) {
+    showGlobalMessage("Produto não encontrado.", "error");
+    return;
+  }
+
+  const codigo = getMaterialCode(produto);
+  const nome = getMaterialName(produto);
+
+  const confirmado = window.confirm(
+    `Excluir o produto "${codigo} — ${nome}"?\n\n` +
+    "A exclusão só será permitida se não houver estoque e nem movimentações relacionadas."
+  );
+
+  if (!confirmado) return;
+
+  try {
+    const resultado = await apiPost({
+      acao: "excluir_material",
+      token: state.token,
+      id
+    });
+
+    showGlobalMessage(
+      resultado.mensagem || "Produto excluído com sucesso!",
+      "success"
+    );
+
+    limparFormularioProduto();
+    await loadData();
+    openView("produtos");
+  } catch (error) {
+    showGlobalMessage(
+      error.message || "Não foi possível excluir o produto.",
+      "error"
+    );
+  }
 }
 
 async function registrarMovimentacao(tipo, event) {
@@ -784,6 +1015,36 @@ function setupEvents() {
   $("entradaForm")?.addEventListener("submit", (event) => registrarMovimentacao("entrada", event));
   $("saidaForm")?.addEventListener("submit", (event) => registrarMovimentacao("saida", event));
   $("usuarioForm")?.addEventListener("submit", cadastrarUsuario);
+
+  $("produtoForm")?.addEventListener("submit", salvarProduto);
+
+  $("produtoCancelarBtn")?.addEventListener("click", limparFormularioProduto);
+
+  $("produtoBusca")?.addEventListener("input", renderProdutos);
+
+  $("refreshProdutosBtn")?.addEventListener("click", async () => {
+    try {
+      await loadData();
+      renderProdutos();
+      showGlobalMessage("Produtos atualizados.", "success");
+    } catch (error) {
+      showGlobalMessage(error.message, "error");
+    }
+  });
+
+  $("produtosTable")?.addEventListener("click", async (event) => {
+    const editar = event.target.closest("[data-product-edit]");
+    const excluir = event.target.closest("[data-product-delete]");
+
+    if (editar) {
+      preencherFormularioProduto(editar.dataset.productEdit);
+      return;
+    }
+
+    if (excluir) {
+      await excluirProduto(excluir.dataset.productDelete);
+    }
+  });
 
   $("refreshStockBtn")?.addEventListener("click", async () => {
     try {
