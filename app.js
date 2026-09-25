@@ -378,21 +378,67 @@ function getMaterialUnit(material) {
 }
 
 function getEstoqueMinimo(item) {
-  const material = findMaterialById(item?.materialId ?? item?.MATERIAL_ID);
+  const materialId = item?.materialId ?? item?.MATERIAL_ID ?? item?.ID ?? item?.id ?? item?.Id;
+  const material = findMaterialById(materialId);
+
+  // 1) O cadastro do produto é a fonte principal, quando o campo existe.
   const minimoMaterial = materialField(material, [
     "ESTOQUE_MINIMO",
     "Estoque Minimo",
     "Estoque Mínimo",
-    "estoqueMinimo"
+    "estoqueMinimo",
+    "estoque_minimo"
   ]);
 
-  const numeroMaterial = Number(minimoMaterial);
-  if (Number.isFinite(numeroMaterial)) return numeroMaterial;
+  if (
+    minimoMaterial !== "" &&
+    minimoMaterial !== null &&
+    minimoMaterial !== undefined
+  ) {
+    const numeroMaterial = Number(minimoMaterial);
+    if (Number.isFinite(numeroMaterial)) return numeroMaterial;
+  }
 
-  const numeroEstoque = Number(
-    item?.estoqueMinimo ?? item?.ESTOQUE_MINIMO ?? 0
-  );
-  return Number.isFinite(numeroEstoque) ? numeroEstoque : 0;
+  // 2) Fallback para o próprio registro de estoque.
+  const minimoItem =
+    item?.estoqueMinimo ??
+    item?.ESTOQUE_MINIMO ??
+    item?.ESTOQUE_MIN ??
+    item?.estoque_minimo;
+
+  if (
+    minimoItem !== "" &&
+    minimoItem !== null &&
+    minimoItem !== undefined
+  ) {
+    const numeroItem = Number(minimoItem);
+    if (Number.isFinite(numeroItem)) return numeroItem;
+  }
+
+  // 3) Fallback importante para a tela Produtos:
+  // se MATERIAIS não trouxer ESTOQUE_MINIMO, procura o produto
+  // nos registros da aba ESTOQUE.
+  const registrosEstoque = Array.isArray(state.estoque)
+    ? state.estoque.filter((registro) =>
+        String(registro.materialId ?? registro.MATERIAL_ID ?? "")
+          .trim() === String(materialId ?? "").trim()
+      )
+    : [];
+
+  for (const registro of registrosEstoque) {
+    const valor =
+      registro.estoqueMinimo ??
+      registro.ESTOQUE_MINIMO ??
+      registro.ESTOQUE_MIN ??
+      registro.estoque_minimo;
+
+    if (valor !== "" && valor !== null && valor !== undefined) {
+      const numero = Number(valor);
+      if (Number.isFinite(numero)) return numero;
+    }
+  }
+
+  return 0;
 }
 
 function formatNumber(value) {
@@ -754,12 +800,9 @@ function renderProdutos() {
         const nome = getMaterialName(produto);
         const categoria = getMaterialCategory(produto);
         const unidade = getMaterialUnit(produto);
-        const minimo = Number(
-          produto.ESTOQUE_MINIMO ??
-          produto.estoqueMinimo ??
-          produto.ESTOQUE_MIN ??
-          0
-        );
+        // Usa a mesma lógica da tela Estoque, inclusive o fallback
+        // para ESTOQUE quando o cadastro de MATERIAIS não trouxer o mínimo.
+        const minimo = getEstoqueMinimo(produto);
 
         return `<tr>
           <td><strong>${escapeHtml(codigo || "—")}</strong></td>
@@ -815,9 +858,7 @@ function preencherFormularioProduto(id) {
   $("produtoCategoria").value = getMaterialCategory(produto);
   $("produtoUnidade").value = getMaterialUnit(produto);
   $("produtoEstoqueMinimo").value =
-    produto.ESTOQUE_MINIMO ??
-    produto.estoqueMinimo ??
-    0;
+    getEstoqueMinimo(produto);
 
   $("produtoSubmitBtn").textContent = "Salvar alterações";
   $("produtoCancelarBtn")?.classList.remove("hidden");
