@@ -491,12 +491,17 @@ function renderMaterials() {
         const categoria = item.categoria || getMaterialCategory(material) || "—";
         const unidade = item.unidade || getMaterialUnit(material) || "—";
         const quantidade = Number(item.quantidade || 0);
-        const minimo = Number(
-          item.estoqueMinimo ??
-          item.ESTOQUE_MINIMO ??
-          0
-        );
-        const status = item.status || (quantidade <= minimo ? "ESTOQUE BAIXO" : "NORMAL");
+
+        // O estoque mínimo oficial vem do cadastro do produto (MATERIAIS).
+        // Isso evita que um valor antigo/zerado da aba ESTOQUE apareça na tela.
+        const minimo = material
+          ? Number(material.ESTOQUE_MINIMO ?? material.estoqueMinimo ?? 0)
+          : Number(item.estoqueMinimo ?? item.ESTOQUE_MINIMO ?? 0);
+
+        // O status é calculado com base no estoque atual e no mínimo oficial.
+        const status = minimo > 0 && quantidade <= minimo
+          ? "ESTOQUE BAIXO"
+          : "NORMAL";
 
         return `<tr>
           <td><strong>${escapeHtml(codigo)}</strong></td>
