@@ -698,6 +698,8 @@ function populateMaterialSelects() {
     const atual = select.value;
     select.innerHTML = `<option value="">Selecione o material...</option>`;
 
+    const prefixo = id.startsWith("entrada") ? "entrada" : "saida";
+
     state.materiais.forEach((material) => {
       const materialId = material.ID ?? material.id ?? material.Id;
       const codigo = getMaterialCode(material);
